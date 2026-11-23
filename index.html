@@ -35,7 +35,7 @@
  <section id="spesa" hidden>
   <div class="shophead"><h2>Lista della spesa</h2><span class="hint" id="shopCount"></span></div>
   <div class="progress"><i id="shopBar"></i></div>
-  <p class="hint">Scegli i giorni. Trovi un prodotto per voce, senza doppioni: quello scelto nel Piano o, se non hai scelto, il suggerito. Le altre alternative sono in fondo, in «Altre alternative del piano». Con 🏠 sposti in dispensa quello che hai già a casa. Scegli la data della spesa e spunta quello che compri: ogni data ha le sue spunte, salvate nello storico in fondo.</p>
+  <p class="hint">Scegli i giorni. Trovi un prodotto per voce, senza doppioni: quello scelto nel Piano o, se non hai scelto, il suggerito. Sotto ogni reparto trovi tutte le alternative del piano: se al supermercato prendi una di quelle, toccala e conta al posto del prodotto in lista. Con 🏠 sposti in dispensa quello che hai già a casa. Scegli la data della spesa e spunta quello che compri: ogni data ha le sue spunte, salvate nello storico in fondo.</p>
   <nav class="chips" id="shopDays"></nav>
   <div class="tools"><button class="btn ghost sm" id="allDays">Tutta la settimana</button><button class="btn line sm" id="noDays">Nessun giorno</button><button class="btn line sm" id="restoreHidden" hidden></button><button class="btn line sm" id="catBtn">↕️ Ordine reparti</button><button class="btn sm" id="shareShop">Condividi lista</button></div>
   <div class="dnav sdate"><span>🗓️ Spesa del</span><input type="date" id="sDate" aria-label="Giorno in cui fai la spesa"><button class="btn ghost sm" id="sToday" hidden>Oggi</button></div>
@@ -65,8 +65,8 @@
    <label class="field">Quantità<span class="inl"><input id="cQ" type="number" inputmode="decimal" min="0" step="any"><span id="cU">g</span></span></label>
    <label class="field">Sostituiscilo con<input id="cTo" data-sug placeholder="Cerca un alimento, anche fuori piano…" autocomplete="off"></label>
    <div id="cRes"></div></div>
-  <div class="card"><h4>⭐ Aggiungi un prodotto di marca</h4><p class="hint">Le kcal di oltre 1.100 alimenti sono già incluse dalla banca dati: li trovi cercando qui sotto, nel convertitore e nel diario. Qui aggiungi solo un prodotto particolare, copiando le kcal per 100 g dall'etichetta.</p>
-   <form class="add" id="cfForm" style="margin:8px 0 0"><input id="cfN" data-sug placeholder="Nome (es. Biscotti Oro Saiwa)" autocomplete="off"><input id="cfK" type="number" inputmode="decimal" min="0" step="any" placeholder="kcal/100 g" style="flex:none;width:112px"><button class="btn">+</button></form></div>
+  <div class="card"><h4>⭐ Aggiungi un alimento tuo</h4><p class="hint">La banca dati contiene oltre 1.100 alimenti <b>generici</b> (es. biscotti secchi, yogurt greco), non i prodotti di marca. Se vuoi le kcal esatte di un prodotto che compri, aggiungilo qui: scegli tu il nome e copia le kcal per 100 g dall'etichetta. Da quel momento lo trovi nella tabella, nel convertitore e nel diario.</p>
+   <form class="add" id="cfForm" style="margin:8px 0 0"><input id="cfN" placeholder="Nome a tua scelta (es. Biscotti Oro Saiwa)" autocomplete="off"><input id="cfK" type="number" inputmode="decimal" min="0" step="any" placeholder="kcal/100 g" style="flex:none;width:112px"><button class="btn">+</button></form></div>
   <input class="search" id="kSearch" type="search" placeholder="🔍 Cerca nella tabella delle calorie…">
   <div id="kTable"></div>
  </section>

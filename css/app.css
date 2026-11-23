@@ -328,9 +328,26 @@ html[data-theme=dark] #shopDays .chip.on{color:#0f1411}
 #info ul{padding-left:20px;margin:6px 0}#info li{margin:0 0 10px}#info li::marker{color:var(--acc)}
 
 /* suggerimenti alimenti */
-.sug{position:absolute;z-index:80;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.18);max-height:min(340px,50vh);overflow:auto;padding:4px}
-.sug[hidden]{display:none}
-.sug button{display:block;width:100%;text-align:left;background:none;border:0;padding:8px 10px;border-radius:10px;color:inherit;font:inherit;font-size:15px;cursor:pointer}
-.sug button small{display:block;color:var(--mute);font-size:12px;margin-top:1px}
-.sug button:hover,.sug button.on{background:var(--acc2)}
+.fsug{position:absolute;z-index:80;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.18);max-height:min(340px,50vh);overflow:auto;padding:4px}
+.fsug[hidden]{display:none}
+.fsug button{display:block;width:100%;text-align:left;background:none;border:0;padding:8px 10px;border-radius:10px;color:inherit;font:inherit;font-size:15px;cursor:pointer}
+.fsug button small{display:block;color:var(--mute);font-size:12px;margin-top:1px}
+.fsug button:hover,.fsug button.on{background:var(--acc2)}
 .ktip{text-align:center;margin:14px 0}
+
+/* stile A: una colonna a ogni larghezza, cerchio su ogni alimento, alternative a pillole */
+.meal .row{grid-template-columns:1fr;gap:4px}
+.meal .row>.lbl{display:none}
+.opt.main.fixed{cursor:default}
+.opt.main.fixed .ck{background:var(--acc);border:0;color:#fff}html[data-theme=dark] .opt.main.fixed .ck{color:#0f1411}
+.opt.main .on1 small{display:block;color:var(--mute);font-size:12px;font-weight:400;margin-top:1px}
+.opt.main .on1 .tag{margin-left:4px}
+
+/* alternative dentro le categorie della spesa */
+.ialt{margin:6px 0 4px 34px;padding-top:6px;border-top:1px dashed var(--line)}
+.ialt h5{margin:0 0 6px;font-size:12.5px;font-weight:600;color:var(--mute)}
+.achips{display:flex;flex-wrap:wrap;gap:6px}
+.achip{display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border:1px solid var(--line);border-radius:999px;font-size:13.5px;cursor:pointer;background:var(--card);user-select:none}
+.achip input{position:absolute;opacity:0;pointer-events:none}
+.achip.on{background:var(--acc);border-color:var(--acc);color:#fff}.achip.on::before{content:'✓';font-weight:700}
+.achip:focus-within{outline:2px solid var(--acc);outline-offset:1px}
