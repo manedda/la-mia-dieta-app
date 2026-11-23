@@ -326,3 +326,11 @@ details.alts>summary small{display:block;font-weight:400;color:var(--mute);font-
 #shopDays .chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
 html[data-theme=dark] #shopDays .chip.on{color:#0f1411}
 #info ul{padding-left:20px;margin:6px 0}#info li{margin:0 0 10px}#info li::marker{color:var(--acc)}
+
+/* suggerimenti alimenti */
+.sug{position:absolute;z-index:80;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.18);max-height:min(340px,50vh);overflow:auto;padding:4px}
+.sug[hidden]{display:none}
+.sug button{display:block;width:100%;text-align:left;background:none;border:0;padding:8px 10px;border-radius:10px;color:inherit;font:inherit;font-size:15px;cursor:pointer}
+.sug button small{display:block;color:var(--mute);font-size:12px;margin-top:1px}
+.sug button:hover,.sug button.on{background:var(--acc2)}
+.ktip{text-align:center;margin:14px 0}

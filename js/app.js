@@ -1,5 +1,6 @@
 /* ====== PIANO: caricato da un file JSON nel formato "dieta-plan" (vedi docs/formato-piano.md) ======
    Dentro l'app ogni opzione resta un array [nome, quantità, unità, acquisti?] e ogni componente {t, label, opts, ...} */
+import * as CERCA from'./cerca.js';
 import{loadActivePlan,loadPrefs,isExample,planErrors,readPlans,writePlans,newPlanId,writePrefs,readLocalPrefs,clearPrefs,today,bootDone}from'./store.js';
 const {st:PLANS,rec:PLAN_REC}=await loadActivePlan(), {prefs:PREFS,local:PREFS_LOCAL}=await loadPrefs();
 const PLAN=PLAN_REC.plan;
@@ -60,22 +61,34 @@ const KCAL={
 'Yogurt da bere proteico':[170,'pz'],'Yogurt proteico Danone':56,'Ricotta di vacca (30 g)':146,'Marmellata':[22,'cucchiaini'],'Marmellata a ridotto tenore di zucchero':[14,'cucchiaini'],'Miele':[21,'cucchiaini'],
 'Cioccolato fondente':515,'Patate':85,'Patate dolci':86,'Mirtilli':45,'Lamponi':40,'More':40,'Piselli surgelati':70,'Salsa di soia':60
 };
+/* pochi alimenti che la banca dati BDA non ha (tutti gli altri fuori piano vengono da data/alimenti.json) */
 const EXTRA={
-'Pane e cereali':{'Pane carasau':400,'Pane di segale':250,'Grissini':410,'Taralli':480,'Focaccia':300,'Pizza margherita':260,'Pasta all\'uovo':368,'Fregola sarda':360,'Malloreddus (gnocchetti sardi)':350,'Gallette di riso':380,'Cornetto semplice':410,'Biscotti frollini':470},
-'Frutta':{'Mela':53,'Banana':65,'Arancia':34,'Pera':35,'Kiwi':44,'Uva':61,'Fragole':27,'Ananas':40,'Mandarini':72,'Pesca':27,'Anguria':16,'Melone':33,'Cachi':65,'Fichi':47,'Datteri secchi':253,'Albicocche secche':188,'Avocado':231},
-'Verdura':{'Zucchine':11,'Pomodori':17,'Lattuga':19,'Carote':35,'Spinaci':31,'Broccoli':27,'Melanzane':18,'Peperoni':22,'Funghi champignon':20,'Zucca':18,'Cavolfiore':25,'Olive verdi':142},
-'Latte e formaggi':{'Latte intero':64,'Latte scremato':36,'Bevanda di soia':40,'Bevanda di mandorla':24,'Yogurt bianco intero':66,'Yogurt greco intero':115,'Mozzarella vaccina':253,'Burrata':330,'Pecorino sardo':387,'Grana Padano':398,'Albume d\'uovo':43},
-'Carne e pesce':{'Salsiccia di maiale':304,'Würstel':280,'Salame':425,'Mortadella':317,'Agnello':132,'Tonno sott\'olio sgocciolato':192,'Hummus di ceci':200},
-'Dolci, bevande e condimenti':{'Burro':758,'Maionese':655,'Ketchup':112,'Zucchero':392,'Gelato fior di latte':220,'Patatine in busta':530,'Cioccolato al latte':550,'Birra (100 ml)':34,'Vino rosso (100 ml)':75,'Cola (100 ml)':42}
+'Pane e cereali':{'Fregola sarda':360,'Malloreddus (gnocchetti sardi)':350},
+'Verdura':{'Funghi champignon':22},
+'Condimenti':{'Hummus di ceci':200,'Ketchup':112}
 };
 const kTab=()=>Object.assign({},KCAL,...Object.values(EXTRA),Object.fromEntries((S.customFoods||[]).map(f=>[f.n,f.k])));
 function kcalOf(n,q,u,buy){
  if(buy)return buy.reduce((a,b)=>{const k=kcalOf(b[0],b[1],b[2]);return a==null||k==null?null:a+k;},0);
- const e=kTab()[n];if(e==null)return null;
+ const e=kGet(n);if(e==null)return null;
  if(typeof e==='number')return u==='g'||u==='ml'?q*e/100:null;/* per 100 g o 100 ml */
  return u===e[1]?q*e[0]:null;
 }
 const kFmt=k=>k==null?'':`${Math.round(k)} kcal`;
+
+/* ====== BANCA DATI ALIMENTI (BDA IEO, oltre 1.100 alimenti, caricata a parte) e ricerca tollerante ====== */
+let BDA=null,bix=null,fix=null,fixKey='';const BDAM=new Map();
+fetch('data/alimenti.json').then(r=>r.json()).then(d=>{BDA=d.alimenti.map(r=>({n:r[0],k:r[1],p:r[2],g:r[3],c:r[4],f:r[5],cat:d.categorie[r[6]],u:r[7]||'g',alias:r[8]||'',src:'bda'}));
+ BDA.forEach(e=>BDAM.set(e.n,e));if(S.tab==='calorie')renderCalorie();}).catch(e=>console.warn('Banca dati alimenti non caricata',e));
+/* kcal di un nome esatto: piano, aggiunte e tuoi alimenti, poi banca dati */
+function kGet(n){const e=kTab()[n];if(e!=null)return e;const b=BDAM.get(n);return b?b.k:null;}
+const bdaIx=()=>bix||(BDA?bix=CERCA.index(BDA):[]);
+function foodIx(){const cf=S.customFoods||[],key=(BDA?BDA.length:0)+'|'+cf.map(f=>f.n+':'+f.k).join(',');if(fix&&key===fixKey)return fix;fixKey=key;
+ const own=new Set(cf.map(f=>f.n)),ex=new Set(Object.values(EXTRA).flatMap(Object.keys)),tab=kTab();
+ fix=CERCA.index([...Object.entries(tab).map(([n,k])=>({n,k,u:'g',src:own.has(n)?'tuo':ex.has(n)?'extra':'piano',pri:own.has(n)?2:ex.has(n)?0.5:1.5})),...(BDA||[]).filter(b=>tab[b.n]==null)]);return fix;}
+const foodSearch=(q,l)=>CERCA.search(foodIx(),q,l), foodBest=q=>CERCA.best(foodIx(),q);
+const nFmt=x=>String(x).replace('.',',');
+const perE=e=>Array.isArray(e.k)?`${e.k[0]} kcal / ${unitFmt(1,e.k[1])}`:`${e.k} kcal / 100 ${e.u==='ml'?'ml':'g'}`;
 
 /* ====== ALTERNATIVE FISSE A COLAZIONE (preferenze: breakfastExtras), con quantità a parità di kcal medie ====== */
 const XTRA=PREFS.breakfastExtras||[];
@@ -150,10 +163,11 @@ function renderPlan(){
 }
 
 /* ====== DIARIO ====== */
+const OH0='Scrivi il nome e la quantità: le kcal si calcolano da sole dalla banca dati (oltre 1.100 alimenti). Se non lo trova, scrivile tu.';
 let diaryDate=isoOf(new Date());
 const foodNames=()=>Object.keys(kTab()).sort((a,b)=>a.localeCompare(b,'it'));
 function renderFoodList(){$('#foodList').innerHTML=foodNames().map(n=>`<option value="${esc(n)}">`).join('');}
-function unitOfFood(n){const e=kTab()[n];return Array.isArray(e)?e[1]:'g';}
+function unitOfFood(n){const e=kGet(n);return Array.isArray(e)?e[1]:kTab()[n]==null&&BDAM.has(n)?BDAM.get(n).u:'g';}
 function renderDiary(){
  const dt=dateOf(diaryDate), d=dPlan(), log=S.diary[diaryDate]||[];
  $('#dDate').value=diaryDate;
@@ -171,7 +185,7 @@ function renderDiary(){
   return`<article class="meal ${free?'is-free':''}"><header><div><h3><span>${esc(ic||'')}</span>${esc(mn)}</h3><small class="mk">${ents.length?Math.round(mt)+' kcal':free?'pasto libero':comps.length?'nessun alimento segnato':'non previsto dal piano'}</small></div>${groups?`<button class="btn ghost sm" data-asplan="${mk}">✓ Come da piano</button>`:''}</header>
    ${ents.length?`<ul class="log">${ents.map(e=>`<li><span>${esc(e.n)}${e.off?' <em class="tag off">fuori piano</em>':''}</span><b>${e.u?esc(unitFmt(+e.q,e.u))+' · ':''}${Math.round(e.k||0)} kcal</b><button class="x" data-del="${e.i}" aria-label="Elimina">×</button></li>`).join('')}</ul>`:''}
    ${groups?`<div class="dadd" data-meal="${mk}"><select data-dsel><option value="">Alimento del piano…</option>${groups}</select><input type="number" inputmode="decimal" min="0" step="any" data-dq placeholder="q.tà"><span class="u" data-du></span><button class="btn sm" data-dadd="${mk}">+</button></div>`:''}
-   <details class="off"><summary>＋ Alimento fuori piano</summary><div class="dadd" data-meal="${mk}"><input data-on list="foodList" placeholder="Nome (es. Pizza margherita)" autocomplete="off"><input type="number" inputmode="decimal" min="0" step="any" data-oq placeholder="g"><input type="number" inputmode="decimal" min="0" step="any" data-ok placeholder="kcal"><button class="btn sm" data-oadd="${mk}">+</button></div><small class="hint">Se l'alimento è nella tabella Calorie, le kcal si calcolano da sole. Altrimenti scrivile tu.</small></details></article>`;
+   <details class="off"><summary>＋ Alimento fuori piano</summary><div class="dadd" data-meal="${mk}"><input data-on data-sug placeholder="Nome (es. Pizza margherita)" autocomplete="off"><input type="number" inputmode="decimal" min="0" step="any" data-oq placeholder="g"><input type="number" inputmode="decimal" min="0" step="any" data-ok placeholder="kcal"><button class="btn sm" data-oadd="${mk}">+</button></div><small class="hint" data-oh>${OH0}</small></details></article>`;
  }).join('');
  const days=Object.keys(S.diary).filter(k=>S.diary[k].length).sort().reverse().slice(0,14);
  $('#dHist').innerHTML=days.length?days.map(k=>`<button class="chip ${k===diaryDate?'on':''}" data-dgo="${k}">${dateOf(k).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})} · ${Math.round(S.diary[k].reduce((a,e)=>a+(+e.k||0),0))}</button>`).join(''):'<span class="hint">Ancora nessun giorno registrato.</span>';
@@ -189,11 +203,11 @@ function planFoods(){
  const m=new Map();
  DAYS.forEach(d=>MEALS.forEach(([mk])=>(d.meals[mk]||[]).forEach(c=>{if(c.free)return;c.opts.forEach(o=>{
   (o[3]||[[o[0],o[1],o[2]]]).forEach(b=>{
-   const n=b[0];if(kTab()[n]==null)return;const e=m.get(n)||{n,qs:new Set(),u:b[2],cat:b[3]||SHOP_CAT[c.t]||'Altro'};e.qs.add(b[1]);m.set(n,e);});
+   const n=b[0];if(kGet(n)==null)return;const e=m.get(n)||{n,qs:new Set(),u:b[2],cat:b[3]||SHOP_CAT[c.t]||'Altro'};e.qs.add(b[1]);m.set(n,e);});
  });})));
  return[...m.values()].sort((a,b)=>CAT_ORDER.indexOf(a.cat)-CAT_ORDER.indexOf(b.cat)||a.n.localeCompare(b.n,'it'));
 }
-const per=n=>{const e=kTab()[n];return e==null?'':Array.isArray(e)?`${e[0]} kcal / ${unitFmt(1,e[1])}`:`${e} kcal / 100 g`;};
+const per=n=>{const e=kGet(n);return e==null?'':Array.isArray(e)?`${e[0]} kcal / ${unitFmt(1,e[1])}`:`${e} kcal / 100 ${unitOfFood(n)==='ml'?'ml':'g'}`;};
 const qRange=e=>{const a=[...e.qs].sort((x,y)=>x-y);return a.length>1?`${a[0]}–${a.at(-1)}`:`${a[0]}`;};
 function renderConvFrom(){
  const pf=planFoods();
@@ -208,10 +222,11 @@ function convert(){
  const u=unitOfFood(from);$('#cU').textContent=u==='g'?'g':unitFmt(2,u).replace(/^2 /,'');
  const k=kcalOf(from,q,u);
  let html=k==null?'':`<p><b>${esc(unitFmt(q,u))}</b> di ${esc(lc(from))} = <b>${Math.round(k)} kcal</b></p>`;
- if(to){const e=tab[to];
-  if(e==null)html+=`<p class="hint">"${esc(to)}" non è in tabella: aggiungilo qui sotto con le sue kcal per 100 g.</p>`;
-  else{const amt=Array.isArray(e)?k/e[0]:k/e*100, uu=Array.isArray(e)?e[1]:'g';
-   html+=`<p class="big">≈ <b>${esc(unitFmt(Array.isArray(e)?Math.round(amt*10)/10:Math.round(amt),uu))}</b> di ${esc(lc(to))}</p><p class="hint">stesse calorie (${per(to)})</p>`;}
+ if(to&&k!=null){let tn=to,e=kGet(to),m=null;if(e==null&&to.length>=3){m=foodBest(to);if(m){tn=m.n;e=kGet(tn);}}
+  if(e==null)html+=`<p class="hint">"${esc(to)}" non l'ho trovato nella banca dati: se è un prodotto di marca, aggiungilo qui sotto con le kcal dell'etichetta.</p>`;
+  else if(!e)html+=`<p class="hint">${esc(tn)} non ha calorie.</p>`;
+  else{const amt=Array.isArray(e)?k/e[0]:k/e*100, uu=Array.isArray(e)?e[1]:unitOfFood(tn)==='ml'?'ml':'g';
+   html+=`<p class="big">≈ <b>${esc(uu==='ml'?Math.round(amt)+' ml':unitFmt(Array.isArray(e)?Math.round(amt*10)/10:Math.round(amt),uu))}</b> di ${esc(lc(tn))}</p><p class="hint">stesse calorie (${per(tn)})${m?' · trovato cercando "'+esc(to)+'"':''}</p>`;}
  }
  const pf=planFoods(), me=pf.find(f=>f.n===from);
  if(me&&k){const alt=pf.filter(f=>f.cat===me.cat&&f.n!==from&&!Array.isArray(tab[f.n])).slice(0,40);
@@ -219,13 +234,16 @@ function convert(){
  $('#cRes').innerHTML=html;
 }
 function renderKTable(){
- const q=($('#kSearch').value||'').trim().toLowerCase(), hit=n=>!q||n.toLowerCase().includes(q);
+ const q=($('#kSearch').value||'').trim(), hit=n=>!q||CERCA.matches(n,q);
  const pf=planFoods().filter(f=>hit(f.n));
  let html=CAT_ORDER.map(cat=>{const its=pf.filter(f=>f.cat===cat);return its.length?`<section class="cat"><h4>${CAT_ICON[cat]} ${cat}</h4>${its.map(f=>{const k=kcalOf(f.n,Math.max(...f.qs),f.u);return`<div class="krow"><span>${esc(f.n)}<small>in dieta: ${esc(qRange(f))} ${f.u==='g'?'g':esc(unitFmt(Math.max(...f.qs),f.u).replace(/^\S+ /,''))}${f.qs.size===1&&k!=null?` = ${Math.round(k)} kcal`:''}</small></span><b>${per(f.n)}</b></div>`;}).join('')}</section>`:'';}).join('');
  const ex=Object.entries(EXTRA).map(([cat,o])=>{const its=Object.keys(o).filter(hit);return its.length?`<section class="cat"><h4>➕ ${cat} <span class="hint">· fuori piano</span></h4>${its.map(n=>`<div class="krow"><span>${esc(n)}</span><b>${per(n)}</b></div>`).join('')}</section>`:'';}).join('');
  const cu=(S.customFoods||[]).map((f,i)=>({...f,i})).filter(f=>hit(f.n));
  const cuh=cu.length?`<section class="cat"><h4>⭐ I tuoi alimenti</h4>${cu.map(f=>`<div class="krow"><span>${esc(f.n)}</span><b>${f.k} kcal / 100 g</b><button class="x" data-cfdel="${f.i}" aria-label="Elimina">×</button></div>`).join('')}</section>`:'';
- $('#kTable').innerHTML=(cuh+html+ex)||'<p class="empty">Nessun alimento trovato.</p>';
+ const bd=q?CERCA.search(bdaIx(),q,40):[];
+ const bdh=bd.length?`<section class="cat"><h4>📚 Banca dati alimenti <span class="hint">· ${bd.length===40?'i 40 più simili':bd.length+(bd.length===1?' risultato':' risultati')}</span></h4>${bd.map(e=>`<div class="krow"><span>${esc(e.n)}<small>proteine ${nFmt(e.p)} · grassi ${nFmt(e.g)} · carboidrati ${nFmt(e.c)} · fibra ${nFmt(e.f)} g</small></span><b>${esc(perE(e))}</b></div>`).join('')}</section>`:'';
+ const tip=!q&&BDA?`<p class="hint ktip">Cerca qui sopra per vedere anche gli oltre ${BDA.length>=1000?Math.floor(BDA.length/100)*100:BDA.length} alimenti della banca dati, con proteine, grassi e carboidrati.</p>`:'';
+ $('#kTable').innerHTML=(cuh+html+ex+bdh)?cuh+html+ex+bdh+tip:'<p class="empty">Nessun alimento trovato.</p>';
 }
 function renderCalorie(){renderWeek();renderFoodList();renderConvFrom();convert();renderKTable();}
 
@@ -713,8 +731,8 @@ function renderPrefEd(){
   <p class="hint">Un alimento che vuoi avere sempre come alternativa a colazione. La quantità viene calcolata per dare le stesse calorie, in media, delle altre alternative.</p>
   ${xs||'<p class="hint">Nessuna aggiunta.</p>'}
   ${ct.size?`<details class="off"><summary>➕ Aggiungi un alimento</summary><div class="pxform">
-   <input id="pxN" placeholder="Nome (es. Fette biscottate integrali)" maxlength="60">
-   <div class="pxk"><input id="pxK" type="number" min="1" max="900" placeholder="kcal per 100 g (se l'app non le conosce)"><button type="button" class="btn line sm" id="pxAI">✨ Stima con AI</button></div>
+   <input id="pxN" data-sug autocomplete="off" placeholder="Nome (es. Fette biscottate integrali)" maxlength="60">
+   <div class="pxk"><input id="pxK" type="number" min="1" max="900" placeholder="kcal per 100 g"><button type="button" class="btn line sm" id="pxAI">✨ Stima con AI</button></div>
    <p class="hint" id="pxKi" hidden></p>
    <p class="hint">Mettilo come alternativa a (la prima voce presente quel giorno):</p><div class="pxt">${opts}</div>
    <select id="pxC">${CAT_ORDER.map(c=>`<option ${c==='Colazione e dolci'?'selected':''}>${c}</option>`).join('')}</select>
@@ -754,7 +772,8 @@ $('#prefEd').addEventListener('click',e=>{const b=e.target.closest('button');if(
   if(PD.breakfastExtras.some(x=>x.name.toLowerCase()===n.toLowerCase())){toast('C\'è già');return;}
   {const T=planTypes();if(to.some(t=>T[t]&&[...T[t].names].some(x=>x.toLowerCase()===n.toLowerCase()))){toast('È già tra le alternative del piano');return;}}
   const known=typeof KCAL[n]==='number';
-  if(!known&&!(k>0)){if(SY&&SY.signedIn()){pxEstimate(n,true);return;}toast('Scrivi le kcal per 100 g (o accedi con Google per la stima AI): questo alimento l\'app non lo conosce');return;}
+  if(!known&&!(k>0)){const m=foodBest(n);if(m&&typeof m.k==='number'&&m.k>0){$('#pxK').value=m.k;const x=$('#pxKi');x.hidden=false;x.textContent=`📚 Dalla banca dati: ${m.k} kcal per 100 ${m.u==='ml'?'ml':'g'} (${m.n}). Controlla e premi di nuovo Aggiungi.`;return;}
+   if(SY&&SY.signedIn()){pxEstimate(n,true);return;}toast('Non è nella banca dati: scrivi le kcal per 100 g dall\'etichetta (o accedi con Google per la stima AI)');return;}
   const short=n.split(' ').slice(0,2).join(' ');
   const ai=pxAI&&pxAI.for===n&&pxAI.kcal100===k;pxAI=null;
   PD.breakfastExtras.push(Object.assign({name:n,cat:$('#pxC').value,addTo:to,labelSuffix:' o '+short.toLowerCase(),round:5},k>0&&!known?{kcal100:k}:{},k>0&&!known&&ai?{kcalSrc:'ai'}:{},k>0&&!known&&ai&&pxAI0==='ml'?{kcalBase:'ml'}:{}));pdTouch();}
@@ -924,7 +943,7 @@ document.addEventListener('click',e=>{
   if(add.length){(S.diary[diaryDate]=S.diary[diaryDate]||[]).push(...add);snapDay(diaryDate);save();renderDiary();}
   toast(miss.length?`Pasto segnato. Per ${miss.join(', ').toLowerCase()} ho usato il suggerito`:'Pasto segnato come da piano');}
  if(b.dataset.dadd){const w=b.closest('.dadd'),v=$('[data-dsel]',w).value;if(!v){toast('Scegli un alimento dal menu');return;}const [ci,j]=v.split(':').map(Number);diaryAdd(planEntry(dPlan(),b.dataset.dadd,ci,j,$('[data-dq]',w).value));}
- if(b.dataset.oadd){const w=b.closest('.dadd'),n=$('[data-on]',w).value.trim(),q=+$('[data-oq]',w).value||0,k=+$('[data-ok]',w).value||0;if(!n){toast("Scrivi il nome dell'alimento");return;}if(!k&&!confirm('Non hai indicato le kcal: vuoi aggiungerlo lo stesso?'))return;diaryAdd({m:b.dataset.oadd,n,q,u:q?unitOfFood(n):'',k,off:true});}
+ if(b.dataset.oadd){const w=b.closest('.dadd'),n=$('[data-on]',w).value.trim(),q=+$('[data-oq]',w).value||0,k=+$('[data-ok]',w).value||0;if(!n){toast("Scrivi il nome dell'alimento");return;}if(!k&&!confirm('Non hai indicato le kcal: vuoi aggiungerlo lo stesso?'))return;diaryAdd({m:b.dataset.oadd,n,q,u:q?unitOfFood(w._fn||n):'',k,off:true});}
  if(b.dataset.cfdel){S.customFoods.splice(+b.dataset.cfdel,1);save();renderCalorie();}
  if(b.id==='today'){S.day=DAYS[todayIdx()].k;save();renderDays();renderPlan();setTab('piano');}
  if(b.id==='allDays'){S.shopDays=DAYS.map(d=>d.k);save();renderShop();}
@@ -957,10 +976,35 @@ let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on
 $('#addCat').innerHTML=CAT_ORDER.map(c=>`<option ${c==='Altro'?'selected':''}>${c}</option>`).join('');
 document.addEventListener('change',e=>{if(e.target.id==='bkFile'&&e.target.files[0]){importBackup(e.target.files[0]);e.target.value='';}if(e.target.id==='planFile'&&e.target.files[0]){importPlan(e.target.files[0]);e.target.value='';}if(e.target.id==='pdfFile'&&e.target.files[0]){pdfStart(e.target.files[0]);e.target.value='';}});
 document.addEventListener('input',e=>{const s=e.target;
- if(s.matches('[data-on],[data-oq]')){const w=s.closest('.dadd'),n=$('[data-on]',w).value.trim(),known=kTab()[n]!=null,u=unitOfFood(n),q=+$('[data-oq]',w).value;$('[data-oq]',w).placeholder=known&&u!=='g'?unitFmt(2,u).replace(/^2 /,''):'g';const k=known&&q?kcalOf(n,q,u):null;if(k!=null)$('[data-ok]',w).value=Math.round(k);}
+ if(s.matches('[data-on],[data-oq]')){const w=s.closest('.dadd'),n=$('[data-on]',w).value.trim(),h=$('[data-oh]',w.parentNode);
+  let fn=kGet(n)!=null?n:null,m=null;if(!fn&&n.length>=3){m=foodBest(n);if(m)fn=m.n;}
+  const u=fn?unitOfFood(fn):'g',q=+$('[data-oq]',w).value;w._fn=fn;$('[data-oq]',w).placeholder=u==='g'?'g':u==='ml'?'ml':unitFmt(2,u).replace(/^2 /,'');
+  const k=fn&&q?kcalOf(fn,q,u):null;if(k!=null)$('[data-ok]',w).value=Math.round(k);
+  if(h)h.innerHTML=m?`≈ Calcolo con <b>${esc(m.n)}</b> (${esc(perE(m))}). Se non è lui, scegli un altro suggerimento o correggi le kcal.`:fn?`${esc(fn)}: ${esc(per(fn))}`:n.length>=3?'Non l\'ho trovato nella banca dati: scrivi tu le kcal (le trovi sull\'etichetta).':OH0;}
  if(s.id==='cQ'||s.id==='cTo')convert();
  if(s.id==='kSearch')renderKTable();
 });
+/* suggerimenti sotto i campi con il nome di un alimento (ricerca tollerante) */
+const SRC={piano:'nel piano',tuo:'tuo',extra:'',bda:'banca dati'};
+let sugI=null,sugR=[],sugJ=-1;
+function sugBox(){let b=$('#sugBox');if(!b){b=document.createElement('div');b.id='sugBox';b.className='sug';b.hidden=true;b.setAttribute('role','listbox');document.body.appendChild(b);
+ b.addEventListener('mousedown',e=>e.preventDefault());b.addEventListener('click',e=>{const x=e.target.closest('[data-sj]');if(x)sugPick(+x.dataset.sj);});}return b;}
+function sugShow(i){const b=sugBox(),q=i.value.trim();sugI=i;sugJ=-1;sugR=q.length<2?[]:foodSearch(q,8);
+ if(!sugR.length||sugR[0].n===i.value&&sugR.length===1){b.hidden=true;return;}
+ b.innerHTML=sugR.map((e,j)=>`<button type="button" role="option" data-sj="${j}"><span>${esc(e.n)}</span><small>${esc(perE(e))}${SRC[e.src]?' · '+SRC[e.src]:''}</small></button>`).join('');
+ const r=i.getBoundingClientRect(),w=Math.min(Math.max(r.width,280),innerWidth-16);
+ b.style.width=w+'px';b.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+scrollX+'px';b.style.top=r.bottom+scrollY+4+'px';b.hidden=false;}
+function sugHide(){const b=$('#sugBox');if(b)b.hidden=true;sugI=null;}
+function sugPick(j){const e=sugR[j],i=sugI;if(!e||!i)return;sugHide();i.value=e.n;i._pick=e.n;i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new CustomEvent('foodpick',{bubbles:true,detail:e}));}
+document.addEventListener('input',e=>{const i=e.target;if(!i.matches||!i.matches('[data-sug]'))return;if(i._pick===i.value)return;i._pick=null;sugShow(i);},true);
+document.addEventListener('focusout',e=>{if(e.target===sugI)setTimeout(()=>{if(sugI&&document.activeElement!==sugI)sugHide();},150);});
+document.addEventListener('keydown',e=>{const b=$('#sugBox');if(!sugI||e.target!==sugI||!b||b.hidden)return;const n=sugR.length;
+ if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();sugJ=(sugJ+(e.key==='ArrowDown'?1:-1)+n)%n;$$('[data-sj]',b).forEach((x,j)=>x.classList.toggle('on',j===sugJ));}
+ else if(e.key==='Enter'&&sugJ>=0){e.preventDefault();sugPick(sugJ);}else if(e.key==='Escape')sugHide();});
+addEventListener('resize',()=>sugHide());
+document.addEventListener('foodpick',e=>{const i=e.target,f=e.detail;
+ if(i.id==='cfN'&&typeof f.k==='number'){$('#cfK').value=f.k;}
+ if(i.id==='pxN'&&typeof f.k==='number'){$('#pxK').value=f.k;pxAI=null;const x=$('#pxKi');if(x){x.hidden=false;x.textContent=`📚 Dalla banca dati: ${f.k} kcal per 100 ${f.u==='ml'?'ml':'g'} (${f.n}). Correggi se hai l'etichetta.`;}}});
 $('#cfForm').addEventListener('submit',e=>{e.preventDefault();const n=$('#cfN').value.trim(),k=+$('#cfK').value;if(!n||!k){toast('Scrivi nome e kcal per 100 g');return;}S.customFoods=(S.customFoods||[]).filter(f=>f.n!==n);S.customFoods.push({n,k});$('#cfN').value='';$('#cfK').value='';save();renderCalorie();toast('Alimento aggiunto');});
 applyUI(S.ui);
 const setToday=()=>{$('#today').textContent=longDate(new Date());};
