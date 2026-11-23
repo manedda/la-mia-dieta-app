@@ -288,7 +288,9 @@ function convert(){
  $('#cRes').innerHTML=html;
 }
 function renderKTable(){
- const q=($('#kSearch').value||'').trim(), hit=n=>!q||CERCA.matches(n,q);
+ const q=($('#kSearch').value||'').trim(), allN=()=>planFoods().map(f=>f.n).concat(...Object.values(EXTRA).map(Object.keys),(S.customFoods||[]).map(f=>f.n));
+ /* errori di battitura solo se niente corrisponde scritto giusto */
+ const fz=!!q&&!allN().some(n=>CERCA.matches(n,q))&&!CERCA.search(bdaIx(),q,1).some(e=>e.score>=6.5), full=q?CERCA.fullFor([...bdaIx(),...CERCA.index(allN().map(n=>({n})))],q):null, hit=n=>!q||CERCA.matches(n,q,fz,full);
  const pf=planFoods().filter(f=>hit(f.n));
  let html=CAT_ORDER.map(cat=>{const its=pf.filter(f=>f.cat===cat);return its.length?`<section class="cat"><h4>${CAT_ICON[cat]} ${cat}</h4>${its.map(f=>{const k=kcalOf(f.n,Math.max(...f.qs),f.u);return`<div class="krow"><span>${esc(f.n)}<small>in dieta: ${esc(qRange(f))} ${f.u==='g'?'g':esc(unitFmt(Math.max(...f.qs),f.u).replace(/^\S+ /,''))}${f.qs.size===1&&k!=null?` = ${Math.round(k)} kcal`:''}</small></span><b>${per(f.n)}</b></div>`;}).join('')}</section>`:'';}).join('');
  const ex=Object.entries(EXTRA).map(([cat,o])=>{const its=Object.keys(o).filter(hit);return its.length?`<section class="cat"><h4>➕ ${cat} <span class="hint">· fuori piano</span></h4>${its.map(n=>`<div class="krow"><span>${esc(n)}</span><b>${per(n)}</b></div>`).join('')}</section>`:'';}).join('');
