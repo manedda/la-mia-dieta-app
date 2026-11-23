@@ -66,16 +66,19 @@
  </section>
  <section id="calorie" hidden>
   <h2>Calorie e riepilogo</h2>
-  <p class="hint">Valori medi indicativi dalla Banca Dati di Composizione degli Alimenti (BDA, IEO); possono variare per marca e cottura. Due alimenti con le stesse calorie non hanno per forza le stesse proteine, grassi e fibre: per i cambi abituali senti la nutrizionista.</p>
+  <p class="hint">Valori medi indicativi dalla Banca Dati di Composizione degli Alimenti (BDA, IEO); possono variare per marca e cottura. Per i prodotti confezionati puoi usare quelli di marca (Open Food Facts). Due alimenti con le stesse calorie non hanno per forza le stesse proteine, grassi e fibre: per i cambi abituali senti la nutrizionista.</p>
   <div class="card"><div class="wkhead"><h4 id="wkTitle">Ultimi 7 giorni</h4><button class="btn line sm" data-wk="1" aria-label="Settimana prima">‹</button><button class="btn line sm" data-wk="-1" id="wkNext" aria-label="Settimana dopo">›</button></div>
    <div class="wksum" id="wkSum"></div><div id="wkBars"></div>
    <p class="wkleg"><i></i> kcal registrate nel diario <em></em> previste dal piano (spunte o suggeriti). Tocca un giorno per aprirlo nel diario.</p></div>
   <div class="card"><h4>🔁 Convertitore</h4>
-   <label class="field">Alimento del piano<select id="cFrom"></select></label>
+   <label class="field">Alimento del piano <small class="hint" id="cFromN"></small><input id="cFromQ" type="search" placeholder="🔍 Filtra (es. pollo, yogurt)…" autocomplete="off" aria-label="Filtra gli alimenti del piano"><select id="cFrom" aria-label="Alimento del piano"></select></label>
    <label class="field">Quantità<span class="inl"><input id="cQ" type="number" inputmode="decimal" min="0" step="any"><span id="cU">g</span></span></label>
    <label class="field">Sostituiscilo con<input id="cTo" data-sug placeholder="Cerca un alimento, anche fuori piano…" autocomplete="off"></label>
    <div id="cRes"></div></div>
-  <div class="card"><h4>⭐ Aggiungi un alimento tuo</h4><p class="hint">La banca dati contiene oltre 1.100 alimenti <b>generici</b> (es. biscotti secchi, yogurt greco), non i prodotti di marca. Se vuoi le kcal esatte di un prodotto che compri, aggiungilo qui: scegli tu il nome e copia le kcal per 100 g dall'etichetta. Da quel momento lo trovi nella tabella, nel convertitore e nel diario.</p>
+  <div class="card"><h4>🏷️ Prodotti di marca</h4><p class="hint">Oltre agli alimenti generici della banca dati IEO puoi usare i prodotti confezionati (es. Pan di Stelle, yogurt Fage) di <b>Open Food Facts</b>: cercali per nome nella tabella qui sotto, oppure inquadra il codice a barre della confezione. Serve la connessione; i prodotti che salvi li ritrovi anche offline.</p>
+   <div class="bcrow"><button class="btn" id="bcScan">📷 Leggi il codice a barre</button><form class="add" id="bcForm"><input id="bcCode" inputmode="numeric" placeholder="oppure scrivi il codice" autocomplete="off" aria-label="Codice a barre"><button class="btn line">Cerca</button></form></div>
+   <div id="bcRes"></div></div>
+  <div class="card"><h4>⭐ Aggiungi un alimento tuo</h4><p class="hint">Se un prodotto non c'è né nella banca dati né tra quelli di marca, aggiungilo qui: scegli tu il nome e copia le kcal per 100 g dall'etichetta. Da quel momento lo trovi nella tabella, nel convertitore e nel diario.</p>
    <form class="add" id="cfForm" style="margin:8px 0 0"><input id="cfN" placeholder="Nome a tua scelta (es. Biscotti Oro Saiwa)" autocomplete="off"><input id="cfK" type="number" inputmode="decimal" min="0" step="any" placeholder="kcal/100 g" style="flex:none;width:112px"><button class="btn">+</button></form></div>
   <input class="search" id="kSearch" type="search" placeholder="🔍 Cerca nella tabella delle calorie…">
   <div id="kTable"></div>
@@ -125,19 +128,21 @@
    <li>Le ricette (oltre 22.000 combinazioni, quasi tutte per pranzo e cena) nascono dagli alimenti che hai spuntato: aggiungi solo spezie, erbe, aglio, limone o aceto.</li>
    <li><b>Scambio dei giorni</b>: nel Piano scegli "Segui il piano di" per scambiare due giorni della settimana (es. lunedì con mercoledì), così la settimana resta completa. Nel Diario puoi indicare quale piano hai seguito in una data precisa.</li>
    <li><b>Diario</b>: segna giorno per giorno cosa hai mangiato, anche fuori piano. <b>Calorie</b>: tabella delle kcal e convertitore tra alimenti.</li>
-   <li>Le calorie sono valori medi indicativi. Per gli alimenti fuori piano l'app usa la <b>Banca Dati di Composizione degli Alimenti</b> (oltre 1.100 alimenti): li cerchi scrivendo anche solo parte del nome, al singolare o al plurale, con o senza accenti.</li>
+   <li>Le calorie sono valori medi indicativi. Per gli alimenti fuori piano l'app usa la <b>Banca Dati di Composizione degli Alimenti</b> (oltre 1.100 alimenti): li cerchi scrivendo anche solo parte del nome, al singolare o al plurale, con o senza accenti. Per i prodotti confezionati ci sono quelli di marca di <b>Open Food Facts</b>: li cerchi per nome o con il codice a barre (📷), e quelli che usi restano salvati nell'app.</li>
    <li><b>Grafica</b>: il pulsante 🌙/☀️ in alto a destra passa dal tema chiaro a quello scuro; colori, carattere e dimensioni si cambiano in Impostazioni, con ⚙️ in alto a destra.</li>
    <li>Scelte, diario, lista della spesa e grafica vengono salvati su questo dispositivo. Se accedi con Google (⚙️ Impostazioni → Account) vengono salvati anche nel cloud e li ritrovi sugli altri dispositivi. In ogni caso puoi fare un backup.</li>
    <li><b>Offline</b>: dopo la prima apertura il sito funziona anche senza connessione, per esempio al supermercato.</li>
   </ul>
   <p class="hint" id="credits"></p>
-  <p class="hint">Valori nutrizionali: Gnagnarella P, Salvini S, Parpinel M. Banca Dati di Composizione degli Alimenti per Studi Epidemiologici in Italia. Versione 1.2022, sito web <a href="https://bda.ieo.it/" target="_blank" rel="noopener">bda.ieo.it</a>.</p></div>
+  <p class="hint">Valori nutrizionali: Gnagnarella P, Salvini S, Parpinel M. Banca Dati di Composizione degli Alimenti per Studi Epidemiologici in Italia. Versione 1.2022, sito web <a href="https://bda.ieo.it/" target="_blank" rel="noopener">bda.ieo.it</a>.</p>
+  <p class="hint">Prodotti di marca: <a href="https://it.openfoodfacts.org/" target="_blank" rel="noopener">Open Food Facts</a>, banca dati libera e collaborativa, disponibile con licenza <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">Open Database License</a>. I valori sono inseriti dagli utenti: in caso di dubbio vale l'etichetta.</p></div>
   <h2>Privacy</h2>
   <div class="rules"><ul>
    <li>L'app è un progetto personale e gratuito, non un servizio medico: non sostituisce il parere del nutrizionista.</li>
    <li>Senza accesso con Google tutto resta su questo dispositivo.</li>
    <li>Se accedi con Google, piani, scelte, diario e spese sono salvati nel cloud (Google Firebase, progetto di Matteo Anedda). Le regole del database danno accesso solo al tuo account; come gestore del progetto Matteo potrebbe tecnicamente vederli, ma non li consulta e non li condivide.</li>
    <li>Quando carichi un PDF o chiedi una stima delle calorie, il testo viene mandato a Google Gemini per l'elaborazione. Per chi è nell'Unione europea Google non lo usa per addestrare i suoi modelli.</li>
+   <li>Quando cerchi un prodotto di marca o leggi un codice a barre, il nome cercato o il codice vengono mandati a Open Food Facts. L'immagine della fotocamera resta sul telefono: serve solo a leggere le barre.</li>
    <li>Puoi esportare i tuoi dati in qualsiasi momento (⚙️ Impostazioni → I tuoi dati) e cancellare dal cloud dati e account (⚙️ Impostazioni → Account).</li>
   </ul></div>
  </section>
@@ -150,6 +155,7 @@
  <button class="btn line" id="scDevice">Usa quelli di questo dispositivo</button>
  <p class="hint">Sostituisce i dati nel cloud con quelli di qui; quelli presenti solo nel cloud restano.</p>
  <p class="hint">Nel dubbio, fai prima un backup in ⚙️ Impostazioni.</p></div></dialog>
+<dialog id="scan"><div class="scanbox"><h3>📷 Codice a barre</h3><div class="scview"><video id="scVid" playsinline muted autoplay></video><i></i></div><p class="hint" id="scMsg"></p><button class="btn line" id="scClose">Chiudi</button></div></dialog>
 <dialog id="pdfImp"><div class="pibox" id="piBody"></div></dialog>
 <dialog id="recipe">
  <div class="rhead"><small id="rMeta"></small><h3 id="rTitle"></h3></div>

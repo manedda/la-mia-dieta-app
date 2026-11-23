@@ -1,5 +1,5 @@
 /* Service worker: rete prima (così vedi sempre l'ultima versione), copia salvata se sei offline o la rete è troppo lenta */
-const C='dieta-app-v22', FILES=['./','index.html','css/app.css','js/theme-head.js','js/app.js','js/store.js','js/sync.js','js/ai.js','js/pdfimport.js','js/cerca.js','data/alimenti.json','js/firebase-config.js','data/piano-esempio.json','data/preferenze-predefinite.json','manifest.webmanifest','img/apple-touch-icon.png','img/icon-192.png','img/icon-512.png','img/favicon-32.png'];
+const C='dieta-app-v23', FILES=['./','index.html','css/app.css','js/theme-head.js','js/app.js','js/store.js','js/sync.js','js/ai.js','js/pdfimport.js','js/cerca.js','js/marca.js','data/alimenti.json','js/firebase-config.js','data/piano-esempio.json','data/preferenze-predefinite.json','manifest.webmanifest','img/apple-touch-icon.png','img/icon-192.png','img/icon-512.png','img/favicon-32.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{

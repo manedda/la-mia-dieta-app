@@ -52,7 +52,7 @@ function mergeDoc(n,a,b){
  if(n==='main'){/* vince questo dispositivo, ma unisco le raccolte per non perdere aggiunte fatte altrove */
   ['picks','pantry','checked','hidden','dplan','shopLog'].forEach(k=>{if(y[k]&&typeof y[k]==='object')x[k]={...y[k],...(x[k]||{})};});
   const uni=(k,key)=>{const a=x[k]||[],seen=new Set(a.map(key));x[k]=[...a,...(y[k]||[]).filter(e=>!seen.has(key(e)))];};
-  uni('custom',e=>e.n+'|'+e.cat);uni('customFoods',e=>e.n);
+  uni('custom',e=>e.n+'|'+e.cat);uni('customFoods',e=>e.n);uni('brandFoods',e=>e.code||e.n);
   return JSON.stringify(x);}
  return a;
 }

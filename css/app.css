@@ -378,3 +378,16 @@ html[data-theme=dark] #shopDays .chip.on{color:#0f1411}
 .sseg{margin:8px 0 10px}.sseg button{font-size:14px}
 .item.pick .nm small{color:var(--mute)}.item.pick:not(.sel) .nm{color:var(--mute)}
 .btn.wide{display:block;width:100%;margin:14px 0 4px;padding:13px;font-size:15px}
+
+/* prodotti di marca e codice a barre */
+.bcrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}.bcrow .add{flex:1;min-width:220px;margin:0}
+#bcRes .krow{margin-top:10px}#bcRes .hint{margin:8px 0 0}
+.krow .btn.sm{flex:none;padding:4px 10px;margin-left:6px}
+.fsh{font-size:12px;font-weight:700;color:var(--mute);padding:8px 10px 4px;border-top:1px solid var(--line);margin-top:4px}
+.lnk{background:none;border:0;padding:6px 0 0;color:var(--acc);font:inherit;font-size:14px;font-weight:600;cursor:pointer;display:block}
+#scan .scanbox{padding:18px}#scan h3{margin:0 0 10px}
+.scview{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:4/3}
+.scview video{width:100%;height:100%;object-fit:cover;display:block}
+.scview i{position:absolute;left:12%;right:12%;top:50%;height:2px;background:#ff4d4d;box-shadow:0 0 10px #ff4d4d;opacity:.85}
+#scMsg{min-height:2.6em}
+#cFromQ{margin-bottom:6px}

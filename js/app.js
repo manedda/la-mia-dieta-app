@@ -1,6 +1,7 @@
 /* ====== PIANO: caricato da un file JSON nel formato "dieta-plan" (vedi docs/formato-piano.md) ======
    Dentro l'app ogni opzione resta un array [nome, quantità, unità, acquisti?] e ogni componente {t, label, opts, ...} */
 import * as CERCA from'./cerca.js';
+import * as MARCA from'./marca.js';
 import{loadActivePlan,loadPrefs,isExample,planErrors,readPlans,writePlans,newPlanId,writePrefs,readLocalPrefs,clearPrefs,today,bootDone}from'./store.js';
 const {st:PLANS,rec:PLAN_REC}=await loadActivePlan(), {prefs:PREFS,local:PREFS_LOCAL}=await loadPrefs();
 const PLAN=PLAN_REC.plan;
@@ -17,7 +18,7 @@ const CAT_ORDER=['Frutta e verdura','Carne e salumi','Pesce','Latte, yogurt e uo
 const CAT_ICON={'Frutta e verdura':'🥬','Carne e salumi':'🥩','Pesce':'🐟','Latte, yogurt e uova':'🥛','Formaggi e tofu':'🧀','Pane e prodotti da forno':'🥖','Colazione e dolci':'🍯','Pasta, riso e legumi':'🍝','Surgelati':'❄️','Frutta secca':'🌰','Snack e dolci':'🍫','Condimenti':'🫒','Altro':'🛒'};
 /* ====== STATO (salvato nel browser) ====== */
 const LS='dietaApp.v1';
-const S=Object.assign({picks:{},shopDays:[],checked:{},hidden:{},custom:[],tab:'piano',day:null,diary:{},customFoods:[],conv:null,swap:{},dplan:{},ui:{},shopLog:{}},JSON.parse(localStorage.getItem(LS)||'{}'));
+const S=Object.assign({picks:{},shopDays:[],checked:{},hidden:{},custom:[],tab:'piano',day:null,diary:{},customFoods:[],brandFoods:[],conv:null,swap:{},dplan:{},ui:{},shopLog:{}},JSON.parse(localStorage.getItem(LS)||'{}'));
 const save=()=>{if(window.dietaFrozen)return;localStorage.setItem(LS,JSON.stringify(S));window.dispatchEvent(new Event('dieta:changed'));};
 /* scelte che dipendono dal piano: quando cambi piano vengono messe da parte con il piano vecchio e riprese se torni a usarlo */
 const PLAN_KEYS=['picks','swap','dplan','checked','hidden','shopDays','day'];
@@ -67,7 +68,9 @@ const EXTRA={
 'Verdura':{'Funghi champignon':22},
 'Condimenti':{'Hummus di ceci':200,'Ketchup':112}
 };
-const kTab=()=>Object.assign({},KCAL,...Object.values(EXTRA),Object.fromEntries((S.customFoods||[]).map(f=>[f.n,f.k])));
+const kTab=()=>Object.assign({},KCAL,...Object.values(EXTRA),Object.fromEntries((S.brandFoods||[]).map(f=>[f.n,f.k])),Object.fromEntries((S.customFoods||[]).map(f=>[f.n,f.k])));
+/* prodotti di marca salvati (Open Food Facts) per nome */
+const brandOf=n=>(S.brandFoods||[]).find(f=>f.n===n);
 function kcalOf(n,q,u,buy){
  if(buy)return buy.reduce((a,b)=>{const k=kcalOf(b[0],b[1],b[2]);return a==null||k==null?null:a+k;},0);
  const e=kGet(n);if(e==null)return null;
@@ -83,11 +86,19 @@ fetch('data/alimenti.json').then(r=>r.json()).then(d=>{BDA=d.alimenti.map(r=>({n
 /* kcal di un nome esatto: piano, aggiunte e tuoi alimenti, poi banca dati */
 function kGet(n){const e=kTab()[n];if(e!=null)return e;const b=BDAM.get(n);return b?b.k:null;}
 const bdaIx=()=>bix||(BDA?bix=CERCA.index(BDA):[]);
-function foodIx(){const cf=S.customFoods||[],key=(BDA?BDA.length:0)+'|'+cf.map(f=>f.n+':'+f.k).join(',');if(fix&&key===fixKey)return fix;fixKey=key;
- const own=new Set(cf.map(f=>f.n)),ex=new Set(Object.values(EXTRA).flatMap(Object.keys)),tab=kTab();
- fix=CERCA.index([...Object.entries(tab).map(([n,k])=>({n,k,u:'g',src:own.has(n)?'tuo':ex.has(n)?'extra':'piano',pri:own.has(n)?2:ex.has(n)?0.5:1.5})),...(BDA||[]).filter(b=>tab[b.n]==null)]);return fix;}
+function foodIx(){const cf=S.customFoods||[],bf=S.brandFoods||[],key=(BDA?BDA.length:0)+'|'+cf.map(f=>f.n+':'+f.k).join(',')+'|'+bf.map(f=>f.code+':'+f.n).join(',');if(fix&&key===fixKey)return fix;fixKey=key;
+ const own=new Set(cf.map(f=>f.n)),ex=new Set(Object.values(EXTRA).flatMap(Object.keys)),tab=kTab(),br=new Map(bf.map(f=>[f.n,f]));
+ fix=CERCA.index([...Object.entries(tab).map(([n,k])=>own.has(n)?{n,k,u:'g',src:'tuo',pri:2}:br.has(n)?{...br.get(n),alias:br.get(n).b,src:'marca',pri:1}:{n,k,u:'g',src:ex.has(n)?'extra':'piano',pri:ex.has(n)?0.5:1.5}),...(BDA||[]).filter(b=>tab[b.n]==null)]);return fix;}
+/* salva un prodotto di Open Food Facts tra i tuoi (una volta sola per codice a barre) e ne restituisce il nome usato nell'app */
+function saveBrand(e){const bf=S.brandFoods=S.brandFoods||[];const old=bf.find(f=>e.code&&f.code===e.code);if(old)return old.n;
+ let n=e.n;if(kTab()[n]!=null||BDAM.has(n))n=`${n} · ${e.code.slice(-4)}`;
+ bf.push({n,nm:e.nm,b:e.b,k:e.k,p:e.p,g:e.g,c:e.c,f:e.f,u:e.u,code:e.code});save();renderFoodList();return n;}
+/* prodotti di marca trovati online, senza quelli già nell'app (banca dati IEO, piano, tuoi, già salvati) */
+function offClean(list){const gen=[...(BDA||[]),...Object.entries(kTab()).map(([n,k])=>({n,k}))],codes=new Set((S.brandFoods||[]).map(f=>f.code));return MARCA.dedupe(list,gen,codes);}
+const offMsg=e=>!navigator.onLine?'Senza connessione non posso cercare i prodotti di marca.':e&&e.busy?'Open Food Facts è molto occupato in questo momento: riprova tra un minuto.':'Non sono riuscito a cercare i prodotti di marca, riprova tra poco.';
 const foodSearch=(q,l)=>CERCA.search(foodIx(),q,l), foodBest=q=>CERCA.best(foodIx(),q);
 const nFmt=x=>String(x).replace('.',',');
+const macros=e=>e.p==null?'':`proteine ${nFmt(e.p)} · grassi ${nFmt(e.g??'–')} · carboidrati ${nFmt(e.c??'–')}${e.f!=null?' · fibra '+nFmt(e.f):''} g`;
 const perE=e=>Array.isArray(e.k)?`${e.k[0]} kcal / ${unitFmt(1,e.k[1])}`:`${e.k} kcal / 100 ${e.u==='ml'?'ml':'g'}`;
 
 /* ====== ALTERNATIVE FISSE A COLAZIONE (preferenze: breakfastExtras), con quantità a parità di kcal medie ====== */
@@ -193,7 +204,7 @@ function mealLog(iso,mk,free,log){
   :`<span class="no">${ents.length?'Segnato a mano':'Niente spuntato'}</span><button class="btn line sm" data-mplan="${mk}">✓ Tutto il pasto</button><button class="btn line sm" data-mskip="${mk}">Saltato</button>`;
  return`<div class="mlog">${head?`<div class="mst">${head}</div>`:''}
   ${ents.length?`<ul class="log">${ents.map(e=>`<li><span>${esc(e.n)}${e.off?' <em class="tag off">fuori piano</em>':''}</span><b>${e.u?esc(unitFmt(+e.q,e.u))+' · ':''}${Math.round(e.k||0)} kcal</b><button class="x" data-ldel="${e.i}" aria-label="Elimina">×</button></li>`).join('')}</ul>`:''}
-  <details class="off"><summary>＋ Alimento fuori piano</summary><div class="dadd" data-meal="${mk}" data-iso="${iso}"><input data-on data-sug placeholder="Nome (es. Pizza margherita)" autocomplete="off"><input type="number" inputmode="decimal" min="0" step="any" data-oq placeholder="g"><input type="number" inputmode="decimal" min="0" step="any" data-ok placeholder="kcal"><button class="btn sm" data-oadd="${mk}">+</button></div><small class="hint" data-oh>${OH0}</small></details></div>`;
+  <details class="off"><summary>＋ Alimento fuori piano</summary><div class="dadd" data-meal="${mk}" data-iso="${iso}"><input data-on data-sug placeholder="Nome (es. Pizza margherita)" autocomplete="off"><input type="number" inputmode="decimal" min="0" step="any" data-oq placeholder="g"><input type="number" inputmode="decimal" min="0" step="any" data-ok placeholder="kcal"><button class="btn sm" data-oadd="${mk}">+</button></div><small class="hint" data-oh>${OH0}</small><button class="lnk" data-oscan>📷 Leggi il codice a barre</button></details></div>`;
 }
 /* ====== DIARIO COLLEGATO AL PIANO ======
    Nel diario gli alimenti del piano hanno pl:"pasto|n" (rigenerati quando cambi scelta), skip:1 = pasto saltato.
@@ -217,11 +228,11 @@ function setDayPlan(iso,k){const had=dLog(iso).some(e=>e.pl);
 const rerender=()=>{renderDays();renderPlan();if(!$('#diario').hidden)renderDiary();};
 
 /* ====== DIARIO ====== */
-const OH0='Scrivi il nome e la quantità: le kcal si calcolano da sole dalla banca dati (oltre 1.100 alimenti). Se non lo trova, scrivile tu.';
+const OH0='Scrivi il nome e la quantità: le kcal si calcolano da sole dalla banca dati (oltre 1.100 alimenti) o dai prodotti di marca. Se non lo trova, scrivile tu.';
 let diaryDate=isoOf(new Date());
 const foodNames=()=>Object.keys(kTab()).sort((a,b)=>a.localeCompare(b,'it'));
 function renderFoodList(){$('#foodList').innerHTML=foodNames().map(n=>`<option value="${esc(n)}">`).join('');}
-function unitOfFood(n){const e=kGet(n);return Array.isArray(e)?e[1]:kTab()[n]==null&&BDAM.has(n)?BDAM.get(n).u:'g';}
+function unitOfFood(n){const e=kGet(n),bf=brandOf(n);return Array.isArray(e)?e[1]:bf?bf.u||'g':kTab()[n]==null&&BDAM.has(n)?BDAM.get(n).u:'g';}
 function renderDiary(){
  const dt=dateOf(diaryDate), d=dPlan(), log=S.diary[diaryDate]||[];
  $('#dDate').value=diaryDate;
@@ -239,7 +250,7 @@ function renderDiary(){
   return`<article class="meal ${free?'is-free':''}"><header><div><h3><span>${esc(ic||'')}</span>${esc(mn)}</h3><small class="mk">${ents.some(e=>e.skip)?'pasto saltato':ents.length?Math.round(mt)+' kcal':free?'pasto libero':comps.length?'nessun alimento segnato':'non previsto dal piano'}</small></div>${groups&&mealState(diaryDate,mk)==='none'?`<button class="btn ghost sm" data-asplan="${mk}">✓ Come da piano</button>`:''}</header>
    ${ents.length?`<ul class="log">${ents.map(e=>`<li><span>${esc(e.n)}${e.off?' <em class="tag off">fuori piano</em>':e.pl?' <em class="tag">dal piano</em>':''}</span><b>${e.skip?'':`${e.u?esc(unitFmt(+e.q,e.u))+' · ':''}${Math.round(e.k||0)} kcal`}</b><button class="x" data-del="${e.i}" aria-label="${e.skip?'Annulla':'Elimina'}">×</button></li>`).join('')}</ul>`:''}
    ${groups?`<div class="dadd" data-meal="${mk}"><select data-dsel><option value="">Alimento del piano…</option>${groups}</select><input type="number" inputmode="decimal" min="0" step="any" data-dq placeholder="q.tà"><span class="u" data-du></span><button class="btn sm" data-dadd="${mk}">+</button></div>`:''}
-   <details class="off"><summary>＋ Alimento fuori piano</summary><div class="dadd" data-meal="${mk}"><input data-on data-sug placeholder="Nome (es. Pizza margherita)" autocomplete="off"><input type="number" inputmode="decimal" min="0" step="any" data-oq placeholder="g"><input type="number" inputmode="decimal" min="0" step="any" data-ok placeholder="kcal"><button class="btn sm" data-oadd="${mk}">+</button></div><small class="hint" data-oh>${OH0}</small></details></article>`;
+   <details class="off"><summary>＋ Alimento fuori piano</summary><div class="dadd" data-meal="${mk}"><input data-on data-sug placeholder="Nome (es. Pizza margherita)" autocomplete="off"><input type="number" inputmode="decimal" min="0" step="any" data-oq placeholder="g"><input type="number" inputmode="decimal" min="0" step="any" data-ok placeholder="kcal"><button class="btn sm" data-oadd="${mk}">+</button></div><small class="hint" data-oh>${OH0}</small><button class="lnk" data-oscan>📷 Leggi il codice a barre</button></details></article>`;
  }).join('');
  const days=Object.keys(S.diary).filter(k=>S.diary[k].some(e=>!e.x)).sort().reverse().slice(0,14);
  $('#dHist').innerHTML=days.length?days.map(k=>`<button class="chip ${k===diaryDate?'on':''}" data-dgo="${k}">${dateOf(k).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})} · ${Math.round(S.diary[k].reduce((a,e)=>a+(+e.k||0),0))}</button>`).join(''):'<span class="hint">Ancora nessun giorno registrato.</span>';
@@ -264,13 +275,16 @@ function planFoods(){
 const per=n=>{const e=kGet(n);return e==null?'':Array.isArray(e)?`${e[0]} kcal / ${unitFmt(1,e[1])}`:`${e} kcal / 100 ${unitOfFood(n)==='ml'?'ml':'g'}`;};
 const qRange=e=>{const a=[...e.qs].sort((x,y)=>x-y);return a.length>1?`${a[0]}–${a.at(-1)}`:`${a[0]}`;};
 function renderConvFrom(){
- const pf=planFoods();
+ const fq=($('#cFromQ').value||'').trim(), all=planFoods(), fz=!!fq&&!all.some(f=>CERCA.matches(f.n,fq)), pf=fq?all.filter(f=>CERCA.matches(f.n,fq,fz)):all;
+ $('#cFromN').textContent=fq?(pf.length?`${pf.length} di ${all.length}`:'nessuno'):'';
+ if(!pf.length){$('#cFrom').innerHTML='<option value="">Nessun alimento del piano con questo nome</option>';return;}
  $('#cFrom').innerHTML=CAT_ORDER.map(cat=>{const its=pf.filter(f=>f.cat===cat);return its.length?`<optgroup label="${esc(cat)}">${its.map(f=>`<option value="${esc(f.n)}" data-q="${Math.max(...f.qs)}">${esc(f.n)}</option>`).join('')}</optgroup>`:'';}).join('');
- if(S.conv&&S.conv.from&&pf.some(f=>f.n===S.conv.from))$('#cFrom').value=S.conv.from;
- $('#cQ').value=S.conv&&S.conv.q?S.conv.q:($('#cFrom').selectedOptions[0]||{dataset:{q:100}}).dataset.q;
+ const keep=S.conv&&S.conv.from&&pf.some(f=>f.n===S.conv.from);if(keep)$('#cFrom').value=S.conv.from;
+ $('#cQ').value=keep&&S.conv.q?S.conv.q:($('#cFrom').selectedOptions[0]||{dataset:{q:100}}).dataset.q;
  $('#cTo').value=S.conv&&S.conv.to||'';
 }
 function convert(){
+ if(!$('#cFrom').value){$('#cRes').innerHTML='';return;}
  const from=$('#cFrom').value, q=+$('#cQ').value, to=$('#cTo').value.trim(), tab=kTab();
  S.conv={from,q,to};save();
  const u=unitOfFood(from);$('#cU').textContent=u==='g'?'g':unitFmt(2,u).replace(/^2 /,'');
@@ -296,11 +310,21 @@ function renderKTable(){
  const ex=Object.entries(EXTRA).map(([cat,o])=>{const its=Object.keys(o).filter(hit);return its.length?`<section class="cat"><h4>➕ ${cat} <span class="hint">· fuori piano</span></h4>${its.map(n=>`<div class="krow"><span>${esc(n)}</span><b>${per(n)}</b></div>`).join('')}</section>`:'';}).join('');
  const cu=(S.customFoods||[]).map((f,i)=>({...f,i})).filter(f=>hit(f.n));
  const cuh=cu.length?`<section class="cat"><h4>⭐ I tuoi alimenti</h4>${cu.map(f=>`<div class="krow"><span>${esc(f.n)}</span><b>${f.k} kcal / 100 g</b><button class="x" data-cfdel="${f.i}" aria-label="Elimina">×</button></div>`).join('')}</section>`:'';
+ const bfl=(S.brandFoods||[]).map((f,i)=>({...f,i})).filter(f=>!q||CERCA.matches(f.n+' '+(f.b||''),q,fz,full));
+ const bfh=bfl.length?`<section class="cat"><h4>🏷️ I tuoi prodotti di marca</h4>${bfl.map(f=>`<div class="krow"><span>${esc(f.n)}<small>${esc(macros(f))}</small></span><b>${esc(perE(f))}</b><button class="x" data-bfdel="${f.i}" aria-label="Togli dai tuoi prodotti">×</button></div>`).join('')}</section>`:'';
  const bd=q?CERCA.search(bdaIx(),q,40):[];
- const bdh=bd.length?`<section class="cat"><h4>📚 Banca dati alimenti <span class="hint">· ${bd.length===40?'i 40 più simili':bd.length+(bd.length===1?' risultato':' risultati')}</span></h4>${bd.map(e=>`<div class="krow"><span>${esc(e.n)}<small>proteine ${nFmt(e.p)} · grassi ${nFmt(e.g)} · carboidrati ${nFmt(e.c)} · fibra ${nFmt(e.f)} g</small></span><b>${esc(perE(e))}</b></div>`).join('')}</section>`:'';
+ const bdh=bd.length?`<section class="cat"><h4>📚 Banca dati alimenti <span class="hint">· ${bd.length===40?'i 40 più simili':bd.length+(bd.length===1?' risultato':' risultati')}</span></h4>${bd.map(e=>`<div class="krow"><span>${esc(e.n)}<small>${esc(macros(e))}</small></span><b>${esc(perE(e))}</b></div>`).join('')}</section>`:'';
  const tip=!q&&BDA?`<p class="hint ktip">Cerca qui sopra per vedere anche gli oltre ${BDA.length>=1000?Math.floor(BDA.length/100)*100:BDA.length} alimenti della banca dati, con proteine, grassi e carboidrati.</p>`:'';
- $('#kTable').innerHTML=(cuh+html+ex+bdh)?cuh+html+ex+bdh+tip:'<p class="empty">Nessun alimento trovato.</p>';
+ const offh=q.length>=3?'<section class="cat" id="kOff"><h4>🏷️ Prodotti di marca <span class="hint">· Open Food Facts</span></h4><p class="hint">Cerco tra i prodotti di marca…</p></section>':'';
+ $('#kTable').innerHTML=(cuh+bfh+html+ex+bdh)||offh?cuh+bfh+html+ex+bdh+offh+tip:'<p class="empty">Nessun alimento trovato.</p>';
+ kOffLoad(q);
 }
+/* prodotti di marca nella tabella: cerco quando hai smesso di scrivere (il servizio accetta poche ricerche al minuto) */
+let kOffT=null,kOffR=[];
+function kOffLoad(q){clearTimeout(kOffT);if(q.length<3)return;
+ kOffT=setTimeout(()=>MARCA.search(q).then(r=>{if(($('#kSearch').value||'').trim()!==q)return;kOffR=offClean(r).slice(0,30);kOffShow();},e=>{const x=$('#kOff');if(x&&($('#kSearch').value||'').trim()===q)$('p',x).textContent=offMsg(e);}),700);}
+function kOffShow(){const x=$('#kOff');if(!x)return;
+ x.innerHTML=`<h4>🏷️ Prodotti di marca <span class="hint">· Open Food Facts${kOffR.length?' · '+kOffR.length+(kOffR.length===1?' risultato':' risultati'):''}</span></h4>`+(kOffR.length?kOffR.map((e,j)=>`<div class="krow"><span>${esc(e.n)}<small>${esc(macros(e))}</small></span><b>${esc(perE(e))}</b><button class="btn line sm" data-offsave="${j}" aria-label="Salva tra i tuoi prodotti">＋</button></div>`).join('')+'<p class="hint">Con ＋ lo salvi tra i tuoi prodotti: poi lo trovi nel diario, nel convertitore e anche offline. I dati sono inseriti dagli utenti di Open Food Facts: se l\'etichetta dice altro, vale l\'etichetta.</p>':'<p class="hint">Nessun prodotto di marca diverso da quelli già in elenco.</p>');}
 function renderCalorie(){renderWeek();renderFoodList();renderConvFrom();convert();renderKTable();}
 
 /* ====== RICETTE ====== */
@@ -1046,6 +1070,10 @@ document.addEventListener('click',e=>{
  if(b.dataset.dadd){const w=b.closest('.dadd'),v=$('[data-dsel]',w).value;if(!v){toast('Scegli un alimento dal menu');return;}const [ci,j]=v.split(':').map(Number);diaryAdd(planEntry(dPlan(),b.dataset.dadd,ci,j,$('[data-dq]',w).value));}
  if(b.dataset.oadd){const w=b.closest('.dadd'),n=$('[data-on]',w).value.trim(),q=+$('[data-oq]',w).value||0,k=+$('[data-ok]',w).value||0;if(!n){toast("Scrivi il nome dell'alimento");return;}if(!k&&!confirm('Non hai indicato le kcal: vuoi aggiungerlo lo stesso?'))return;diaryAdd({m:b.dataset.oadd,n,q,u:q?unitOfFood(w._fn||n):'',k,off:true},w.dataset.iso||diaryDate);}
  if(b.dataset.cfdel){S.customFoods.splice(+b.dataset.cfdel,1);save();renderCalorie();}
+ if(b.dataset.bfdel){const f=S.brandFoods[+b.dataset.bfdel];if(f&&confirm(`Togliere "${f.n}" dai tuoi prodotti? Le voci già scritte nel diario restano.`)){S.brandFoods.splice(+b.dataset.bfdel,1);save();renderFoodList();renderCalorie();}}
+ if(b.dataset.offsave){const e=kOffR[+b.dataset.offsave];if(e){saveBrand(e);kOffR.splice(+b.dataset.offsave,1);toast('Salvato tra i tuoi prodotti');renderKTable();}}
+ if(b.id==='bcScan')scanCode().then(c=>{if(c){$('#bcCode').value=c;bcLookup(c);}});
+ if(b.dataset.oscan){const w=b.closest('details').querySelector('.dadd');scanCode().then(c=>c&&MARCA.byCode(c).then(e=>{if(!e){toast('Prodotto non trovato: scrivi nome e kcal');return;}const i=$('[data-on]',w);i.value=saveBrand(e);i._pick=i.value;i.dispatchEvent(new Event('input',{bubbles:true}));$('[data-oq]',w).focus();},er=>toast(offMsg(er))));}
  if(b.id==='today'){S.day=todayIso();save();renderDays();renderPlan();setTab('piano');}
  if(b.id==='allDays'){S.shopDays=DAYS.map(d=>d.k);save();renderShop();}
  if(b.id==='noDays'){S.shopDays=[];save();renderShop();}
@@ -1088,29 +1116,59 @@ document.addEventListener('input',e=>{const s=e.target;
   const k=fn&&q?kcalOf(fn,q,u):null;if(k!=null)$('[data-ok]',w).value=Math.round(k);
   if(h)h.innerHTML=m?`≈ Calcolo con <b>${esc(m.n)}</b> (${esc(perE(m))}). Se non è lui, scegli un altro suggerimento o correggi le kcal.`:fn?`${esc(fn)}: ${esc(per(fn))}`:n.length>=3?'Non l\'ho trovato nella banca dati: scrivi tu le kcal (le trovi sull\'etichetta).':OH0;}
  if(s.id==='cQ'||s.id==='cTo')convert();
+ if(s.id==='cFromQ'){renderConvFrom();convert();}
  if(s.id==='kSearch')renderKTable();
 });
 /* suggerimenti sotto i campi con il nome di un alimento (ricerca tollerante) */
-const SRC={piano:'nel piano',tuo:'tuo',extra:'',bda:'banca dati'};
+const SRC={piano:'nel piano',tuo:'tuo',extra:'',bda:'banca dati',marca:'tuo prodotto di marca',off:'marca'};
 let sugI=null,sugR=[],sugJ=-1;
 function sugBox(){let b=$('#sugBox');if(!b){b=document.createElement('div');b.id='sugBox';b.className='fsug';b.hidden=true;b.setAttribute('role','listbox');document.body.appendChild(b);
  b.addEventListener('mousedown',e=>e.preventDefault());b.addEventListener('click',e=>{const x=e.target.closest('[data-sj]');if(x)sugPick(+x.dataset.sj);});}return b;}
-function sugShow(i){const b=sugBox(),q=i.value.trim();sugI=i;sugJ=-1;sugR=q.length<2?[]:foodSearch(q,8);
- if(!sugR.length||sugR[0].n===i.value&&sugR.length===1){b.hidden=true;return;}
- b.innerHTML=sugR.map((e,j)=>`<button type="button" role="option" data-sj="${j}"><span>${esc(e.n)}</span><small>${esc(perE(e))}${SRC[e.src]?' · '+SRC[e.src]:''}</small></button>`).join('');
+function sugShow(i){const q=i.value.trim();sugI=i;sugJ=-1;sugR=q.length<2?[]:foodSearch(q,8);sugOff=[];sugRender();
+ clearTimeout(sugT);if(q.length<3||i.id==='cfN'||!navigator.onLine)return;
+ sugT=setTimeout(()=>MARCA.search(q).then(r=>{if(sugI!==i||i.value.trim()!==q)return;const have=new Set(sugR.map(e=>CERCA.norm(e.n)));sugOff=offClean(r).filter(e=>!have.has(CERCA.norm(e.n))).slice(0,6);sugRender();},()=>{}),800);}
+let sugT=null,sugOff=[];
+function sugRender(){const b=sugBox(),i=sugI;if(!i)return;const all=[...sugR,...sugOff];
+ if(!all.length||sugR[0]&&sugR[0].n===i.value&&all.length===1){b.hidden=true;return;}
+ const row=(e,j)=>`<button type="button" role="option" data-sj="${j}"><span>${esc(e.n)}</span><small>${esc(perE(e))}${SRC[e.src]?' · '+SRC[e.src]:''}</small></button>`;
+ b.innerHTML=sugR.map(row).join('')+(sugOff.length?'<div class="fsh">🏷️ Prodotti di marca · Open Food Facts</div>'+sugOff.map((e,j)=>row(e,j+sugR.length)).join(''):'');
  const r=i.getBoundingClientRect(),w=Math.min(Math.max(r.width,280),innerWidth-16);
  b.style.width=w+'px';b.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+scrollX+'px';b.style.top=r.bottom+scrollY+4+'px';b.hidden=false;}
 function sugHide(){const b=$('#sugBox');if(b)b.hidden=true;sugI=null;}
-function sugPick(j){const e=sugR[j],i=sugI;if(!e||!i)return;sugHide();i.value=e.n;i._pick=e.n;i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new CustomEvent('foodpick',{bubbles:true,detail:e}));}
+function sugPick(j){let e=[...sugR,...sugOff][j];const i=sugI;if(!e||!i)return;if(e.src==='off'){e={...e,n:saveBrand(e),src:'marca'};toast('Salvato tra i tuoi prodotti di marca');}sugHide();i.value=e.n;i._pick=e.n;i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new CustomEvent('foodpick',{bubbles:true,detail:e}));}
 document.addEventListener('input',e=>{const i=e.target;if(!i.matches||!i.matches('[data-sug]'))return;if(i._pick===i.value)return;i._pick=null;sugShow(i);},true);
 document.addEventListener('focusout',e=>{if(e.target===sugI)setTimeout(()=>{if(sugI&&document.activeElement!==sugI)sugHide();},150);});
 document.addEventListener('keydown',e=>{const b=$('#sugBox');if(!sugI||e.target!==sugI||!b||b.hidden)return;const n=sugR.length;
- if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();sugJ=(sugJ+(e.key==='ArrowDown'?1:-1)+n)%n;$$('[data-sj]',b).forEach((x,j)=>x.classList.toggle('on',j===sugJ));}
+ if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();const n=sugR.length+sugOff.length;sugJ=(sugJ+(e.key==='ArrowDown'?1:-1)+n)%n;$$('[data-sj]',b).forEach((x,j)=>x.classList.toggle('on',j===sugJ));}
  else if(e.key==='Enter'&&sugJ>=0){e.preventDefault();sugPick(sugJ);}else if(e.key==='Escape')sugHide();});
 addEventListener('resize',()=>sugHide());
 document.addEventListener('foodpick',e=>{const i=e.target,f=e.detail;
  if(i.id==='cfN'&&typeof f.k==='number'){$('#cfK').value=f.k;}
  if(i.id==='pxN'&&typeof f.k==='number'){$('#pxK').value=f.k;pxAI=null;const x=$('#pxKi');if(x){x.hidden=false;x.textContent=`📚 Dalla banca dati: ${f.k} kcal per 100 ${f.u==='ml'?'ml':'g'} (${f.n}). Correggi se hai l'etichetta.`;}}});
+/* ====== CODICE A BARRE (Open Food Facts) ====== */
+async function bcLookup(code){const r=$('#bcRes');code=String(code||'').replace(/\D/g,'');
+ if(code.length<8){r.innerHTML='<p class="hint">Il codice a barre ha 8 o 13 cifre: lo trovi sotto le barre.</p>';return;}
+ r.innerHTML='<p class="hint">Cerco il prodotto…</p>';
+ try{const e=await MARCA.byCode(code);
+  if(!e){r.innerHTML=`<p class="hint">Il codice ${esc(code)} non c'è in Open Food Facts, oppure mancano le kcal. Aggiungilo qui sotto come alimento tuo con le kcal dell'etichetta.</p>`;$('#cfN').focus();return;}
+  const had=(S.brandFoods||[]).some(f=>f.code===e.code),n=saveBrand(e);
+  r.innerHTML=`<div class="krow"><span>${esc(n)}<small>${esc(macros(e))}</small></span><b>${esc(perE(e))}</b></div><p class="hint">${had?'Era già tra i tuoi prodotti.':'Salvato tra i tuoi prodotti di marca'}: lo trovi nel diario, nel convertitore e nella tabella. Se l'etichetta dice altro, vale l'etichetta.</p>`;
+  renderKTable();}catch(er){r.innerHTML=`<p class="hint">${esc(offMsg(er))}</p>`;}}
+$('#bcForm').addEventListener('submit',e=>{e.preventDefault();bcLookup($('#bcCode').value);});
+/* fotocamera: restituisce il codice letto, o null se chiudi */
+function scanCode(){const d=$('#scan'),v=$('#scVid'),msg=$('#scMsg');
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast(isSecureContext?'Questo browser non può usare la fotocamera: scrivi il codice a mano':'La fotocamera funziona solo dal sito sicuro (https): scrivi il codice a mano');return Promise.resolve(null);}
+ msg.textContent='Apro la fotocamera…';d.showModal();
+ return new Promise(res=>{let stop=false,stream=null;
+  const end=code=>{if(stop)return;stop=true;if(stream)stream.getTracks().forEach(t=>t.stop());v.srcObject=null;if(d.open)d.close();res(code);};
+  d.onclose=()=>end(null);$('#scClose').onclick=()=>end(null);
+  (async()=>{try{const det=await MARCA.detector();
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280}},audio:false});
+    if(stop){stream.getTracks().forEach(t=>t.stop());return;}
+    v.srcObject=stream;await v.play();msg.textContent='Inquadra le barre e tieni fermo il telefono, a 10-20 cm.';
+    const loop=async()=>{if(stop)return;try{const r=await det.detect(v),c=r.find(x=>/^\d{8,14}$/.test(x.rawValue));if(c){if(navigator.vibrate)navigator.vibrate(60);end(c.rawValue);return;}}catch(e){}setTimeout(loop,200);};loop();
+   }catch(e){msg.textContent=e&&e.name==='NotAllowedError'?'Non ho il permesso di usare la fotocamera: consentilo nelle impostazioni del browser, oppure chiudi e scrivi il codice a mano.':'Non riesco ad aprire la fotocamera: chiudi e scrivi il codice a mano.';}})();
+ });}
 $('#cfForm').addEventListener('submit',e=>{e.preventDefault();const n=$('#cfN').value.trim(),k=+$('#cfK').value;if(!n||!k){toast('Scrivi nome e kcal per 100 g');return;}S.customFoods=(S.customFoods||[]).filter(f=>f.n!==n);S.customFoods.push({n,k});$('#cfN').value='';$('#cfK').value='';save();renderCalorie();toast('Alimento aggiunto');});
 applyUI(S.ui);
 const setToday=()=>{$('#today').textContent=longDate(new Date());};
