@@ -24,18 +24,20 @@
  <section id="piano">
   <div class="warnbox welcome" id="welcome" hidden></div>
   <div class="warnbox" id="prefWarn" hidden></div>
+  <div class="wknav"><button class="iconbtn" data-dmove="-7" aria-label="Settimana precedente">‹</button><b id="wkLbl"></b><button class="btn ghost sm" id="goToday" hidden>Oggi</button><button class="iconbtn" data-dmove="7" aria-label="Settimana successiva">›</button></div>
   <nav class="chips" id="days" aria-label="Giorno della settimana"></nav>
-  <div class="panel dayhead"><button class="ring" id="dayRing" aria-label="Apri il diario di questo giorno"></button><div class="dh"><h2 id="dayTitle"></h2><p class="daykcal" id="dayKcal"></p><p class="dd" id="dayDiary"></p></div>
-   <div class="swap"><span>Segui il piano di</span><select id="daySwap" aria-label="Piano da seguire"></select><button class="btn line sm" id="swapReset" hidden>Ripristina la settimana</button></div>
+  <div class="panel dayhead"><button class="ring" id="dayRing" aria-label="Apri il diario di questo giorno"></button><div class="dh"><div class="tnav"><button class="dstep" data-dmove="-1" aria-label="Giorno precedente">‹</button><h2 id="dayTitle"></h2><button class="dstep" data-dmove="1" aria-label="Giorno successivo">›</button></div><p class="daykcal" id="dayKcal"></p><p class="dd" id="dayDiary"></p></div>
+   <div class="swap"><span>Segui il piano di</span><select id="daySwap" aria-label="Piano da seguire"></select></div>
    <div class="idea" id="dayIdea"></div></div>
-  <p class="hint lead">Tocca un alimento per sceglierlo, o una delle alternative sotto per cambiarlo. Il cerchio tratteggiato è il suggerito: è quello che usano ricetta, spesa e diario finché non scegli.</p>
+  <p class="hint lead" id="planLead"></p>
   <div class="meals" id="meals"></div>
-  <div class="foot"><button class="btn line sm" id="resetPicks">Azzera le scelte</button></div>
+  <div class="foot"><button class="btn line sm" id="resetPicks">Azzera le scelte della settimana</button></div>
  </section>
  <section id="spesa" hidden>
   <div class="shophead"><h2>Lista della spesa</h2><span class="hint" id="shopCount"></span></div>
   <div class="progress"><i id="shopBar"></i></div>
   <p class="hint">Scegli i giorni. Trovi un prodotto per voce, senza doppioni: quello scelto nel Piano o, se non hai scelto, il suggerito. Sotto ogni reparto trovi tutte le alternative del piano: se al supermercato prendi una di quelle, toccala e conta al posto del prodotto in lista. Con 🏠 sposti in dispensa quello che hai già a casa. Scegli la data della spesa e spunta quello che compri: ogni data ha le sue spunte, salvate nello storico in fondo.</p>
+  <div class="wknav"><button class="iconbtn" data-swk="-1" aria-label="Settimana precedente">‹</button><b id="shopWkLbl"></b><button class="iconbtn" data-swk="1" aria-label="Settimana successiva">›</button></div>
   <nav class="chips" id="shopDays"></nav>
   <div class="tools"><button class="btn ghost sm" id="allDays">Tutta la settimana</button><button class="btn line sm" id="noDays">Nessun giorno</button><button class="btn line sm" id="restoreHidden" hidden></button><button class="btn line sm" id="catBtn">↕️ Ordine reparti</button><button class="btn sm" id="shareShop">Condividi lista</button></div>
   <div class="dnav sdate"><span>🗓️ Spesa del</span><input type="date" id="sDate" aria-label="Giorno in cui fai la spesa"><button class="btn ghost sm" id="sToday" hidden>Oggi</button></div>
@@ -49,6 +51,7 @@
   <div class="dnav"><button class="btn line sm" data-dshift="-1" aria-label="Giorno prima">‹</button><input type="date" id="dDate"><button class="btn line sm" data-dshift="1" aria-label="Giorno dopo">›</button><button class="btn ghost sm" id="dToday">Oggi</button></div>
   <h3 class="dtitle" id="dTitle"></h3>
   <div class="swap"><span>Piano seguito</span><select id="dSwap" aria-label="Piano seguito quel giorno"></select></div>
+  <p class="hint" id="dFut" hidden>È un giorno futuro: il diario si compila da solo quando arriva il giorno.</p>
   <p class="hint" id="dTot"></p><div class="progress"><i id="dBar"></i></div></div>
   <p class="warnbox soft" id="dOld" hidden></p>
   <div class="meals" id="dMeals"></div>

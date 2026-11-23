@@ -351,3 +351,21 @@ html[data-theme=dark] #shopDays .chip.on{color:#0f1411}
 .achip input{position:absolute;opacity:0;pointer-events:none}
 .achip.on{background:var(--acc);border-color:var(--acc);color:#fff}.achip.on::before{content:'✓';font-weight:700}
 .achip:focus-within{outline:2px solid var(--acc);outline-offset:1px}
+
+/* giorni per data e diario nel Piano */
+.wknav{display:flex;align-items:center;gap:8px;margin:4px 0 0}.wknav b{flex:1;text-align:center;font-size:14px;font-weight:650;color:var(--mute)}
+.wknav .iconbtn{font-size:22px;line-height:1;width:36px;height:36px}
+#days .chip.fut .dn{opacity:.8}
+#days .chip .dot.reg{background:var(--acc);opacity:.6}
+#shopDays .chip small{font-size:11px;opacity:.8}
+.mlog{margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.mst{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13.5px}.mst span{flex:1 1 auto;min-width:0;font-weight:600}
+.mst .ok{color:var(--acc)}.mst .sk{color:var(--warm)}.mst .no{color:var(--mute)}
+.mlog .log{margin:6px 0 0}.mlog details.off{margin-top:4px}
+
+.tnav{display:flex;align-items:center;gap:6px}.tnav h2{flex:0 1 auto;min-width:0}
+.dstep{border:0;background:var(--acc2);color:var(--acc);width:26px;height:26px;border-radius:50%;font-size:17px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0;flex:none}
+.meal>.mlog{margin-left:16px;margin-right:16px;margin-bottom:10px}
+.opt.main .od{white-space:normal;text-align:right;min-width:0;flex:0 1 auto;max-width:58%}
+.opt.main .on1{min-width:32%;overflow-wrap:break-word}
+.tnav h2{overflow-wrap:anywhere}
