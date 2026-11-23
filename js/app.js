@@ -578,7 +578,8 @@ const pickOf=(key,c,ap)=>c.opts.length===1?0:isSel(S.picks[key])?+S.picks[key]:(
 const catOrd=()=>{const o=(S.catOrder||[]).filter(c=>CAT_ORDER.includes(c));return[...o,...CAT_ORDER.filter(c=>!o.includes(c))];};
 function moveCat(c,dir){const o=catOrd(),i=o.indexOf(c),j=i+dir;if(j<0||j>=o.length)return;[o[i],o[j]]=[o[j],o[i]];S.catOrder=o;save();renderShop();}
 function renderCatEdit(){const o=catOrd();$('#catEdit').innerHTML=`<p class="hint">Metti i reparti nell'ordine in cui li trovi al supermercato.</p><ol class="catl">${o.map((c,i)=>`<li><span>${CAT_ICON[c]} ${c}</span><button class="btn line sm" data-cmv="${esc(c)}" data-dir="-1" ${i?'':'disabled'} aria-label="Su">▲</button><button class="btn line sm" data-cmv="${esc(c)}" data-dir="1" ${i<o.length-1?'':'disabled'} aria-label="Giù">▼</button></li>`).join('')}</ol><div class="tools"><button class="btn line sm" id="catReset">Ordine predefinito</button><button class="btn sm" id="catDone">Fatto</button></div>`;}
-const inPantry=i=>!i.custom&&S.pantry&&S.pantry[i.key];
+/* la dispensa vale solo per la spesa del giorno in cui la segni */
+const inPantry=i=>i.custom==null&&S.pantry&&S.pantry[i.key]===shopDate;
 
 /* ====== RIEPILOGO SETTIMANALE ====== */
 let wkOff=0;
@@ -921,7 +922,7 @@ function shopGroups(all,every=all){const {t:NT,tl}=nameTypes(), G=new Map();panA
  const seen=new Set(every.map(i=>i.n));
  shopIsos().map(iso=>({...dayOf(iso),iso})).forEach(d=>MEALS.forEach(([mk])=>(d.meals[mk]||[]).forEach((c,i)=>{
   if(c.free||c.opts.length<2)return;const cat=SHOP_CAT[c.t]||'Altro';
-  c.opts.forEach(o=>(o[3]||[[o[0],o[1],o[2]]]).forEach(b=>altSplit(shopName(b[0])).forEach(n=>{if(seen.has(n)||S.hidden[n])return;seen.add(n);if(S.pantry&&S.pantry[n]){panAlts.push(n);return;}const bc=CAT_ORDER.includes(b[3]||cat)?(b[3]||cat):'Altro';grp(bc,NT.get(n)||c.t).alts.push(n);})));})));
+  c.opts.forEach(o=>(o[3]||[[o[0],o[1],o[2]]]).forEach(b=>altSplit(shopName(b[0])).forEach(n=>{if(seen.has(n)||S.hidden[n])return;seen.add(n);if(S.pantry&&S.pantry[n]===shopDate){panAlts.push(n);return;}const bc=CAT_ORDER.includes(b[3]||cat)?(b[3]||cat):'Altro';grp(bc,NT.get(n)||c.t).alts.push(n);})));})));
  const by={};[...G.values()].forEach(g=>{g.alts.sort((x,y)=>x.localeCompare(y));(by[g.cat]=by[g.cat]||[]).push(g);});
  /* i gruppi con un solo prodotto e senza alternative vanno insieme in cima al reparto, senza titolo */
  Object.keys(by).forEach(c=>{const l=by[c],one=l.filter(g=>g.items.length+g.alts.length<2&&g.t!=='_mine'),rest=l.filter(g=>!one.includes(g)).sort((x,y)=>(x.t==='_mine')-(y.t==='_mine')||x.label.localeCompare(y.label));
@@ -959,7 +960,7 @@ function renderShop(){
   const gs=GB[cat]||[];if(!gs.length)return'';
   const row=i=>`<label class="item ${ok(i)?'done':''}"><input type="checkbox" data-check="${esc(i.key)}" ${bought(i)?'checked':''}><span class="nm">${esc(i.n)}<small>${esc(srcFmt(i.src))}${!ok(i)&&lastBuy(i)?` · ultima volta ${esc(sdFmt(lastBuy(i)))}`:''}</small></span>${i.custom!=null?'':`<button class="pan" data-pantry="${esc(i.key)}" title="Ce l'ho già in dispensa" aria-label="Ce l'ho già">🏠</button>`}<button class="x" data-hide="${esc(i.key)}" aria-label="Rimuovi">×</button></label>`;
   return`<section class="cat"><h4>${CAT_ICON[cat]} ${cat}</h4>${gs.map(g=>`<div class="sgrp">${g.label?`<h5>${esc(g.t==='_mine'?'Aggiunti da te':g.label)}</h5>`:''}${[...g.items].sort((a,b)=>ok(a)-ok(b)||a.n.localeCompare(b.n)).map(row).join('')}${g.alts.map(n=>`<label class="item alt ${altB(n)?'done':''}"><input type="checkbox" data-check="alt|${esc(n)}" data-acat="${esc(cat)}" ${altB(n)?'checked':''}><span class="nm">${esc(n)}<small>in alternativa${!altB(n)&&lastBuy({n})?` · ultima volta ${esc(sdFmt(lastBuy({n})))}`:''}</small></span><button class="pan" data-pantry="${esc(n)}" title="Ce l'ho già in dispensa" aria-label="Ce l'ho già">🏠</button><button class="x" data-hide="${esc(n)}" aria-label="Rimuovi">×</button></label>`).join('')}</div>`).join('')}</section>`;
- }).join('')+(pan.length?`<details class="pantry card"><summary>🏠 In dispensa (${pan.length}): non li devi comprare</summary>${pan.sort((a,b)=>a.n.localeCompare(b.n)).map(i=>`<div class="item"><span class="nm">${esc(i.n)}<small>Ce l'hai dal ${dateOf(S.pantry[i.key]).toLocaleDateString('it-IT',{day:'numeric',month:'short'})}</small></span><button class="btn line sm" data-pantry="${esc(i.key)}">Finito, rimetti in lista</button></div>`).join('')}</details>`:'');
+ }).join('')+(pan.length?`<details class="pantry card"><summary>🏠 In dispensa (${pan.length}): non li devi comprare per questa spesa</summary>${pan.sort((a,b)=>a.n.localeCompare(b.n)).map(i=>`<div class="item"><span class="nm">${esc(i.n)}<small>Ce l'hai già per la spesa di questo giorno</small></span><button class="btn line sm" data-pantry="${esc(i.key)}">Finito, rimetti in lista</button></div>`).join('')}</details>`:'');
 }
 function shopText(){const all=shopItems(), items=all.filter(i=>!inPantry(i)), GB=shopGroups(items,all);return'🛒 Lista della spesa\n'+catOrd().map(c=>{const gs=GB[c]||[];const L=gs.flatMap(g=>(g.label?[`· ${g.t==='_mine'?'Aggiunti da te':g.label}`]:[]).concat(g.items.filter(i=>!bought(i)).map(i=>`☐ ${i.n}`)).concat(g.alts.filter(n=>!altB(n)).map(n=>`☐ ${n} (in alternativa)`)));return L.some(x=>x.startsWith('☐')||x.startsWith('   '))?`\n${c}\n`+L.join('\n'):'';}).join('\n');}
 
@@ -990,7 +991,7 @@ document.addEventListener('click',e=>{
  if(b.dataset.recipe)openRecipe(b.dataset.recipe);
  if(b.dataset.sday){const k=b.dataset.sday;S.shopDays=S.shopDays.includes(k)?S.shopDays.filter(x=>x!==k):[...S.shopDays,k];save();renderShop();}
  if(b.dataset.altadd){e.preventDefault();const n=b.dataset.altadd;if(!S.custom.some(c=>c.n===n))S.custom.push({n,cat:b.dataset.acat||'Altro'});altOpen=true;save();renderShop();toast(`${n}: messo in lista`);}
- if(b.dataset.pantry){e.preventDefault();const k=b.dataset.pantry;if(S.pantry[k]){delete S.pantry[k];toast('Rimesso nella lista');}else{S.pantry[k]=isoOf(new Date());delete S.checked[k];toast('Spostato in dispensa');}save();renderShop();}
+ if(b.dataset.pantry){e.preventDefault();const k=b.dataset.pantry;if(S.pantry[k]===shopDate){delete S.pantry[k];toast('Rimesso nella lista');}else{S.pantry[k]=shopDate;delete S.checked[k];toast('Spostato in dispensa');}save();renderShop();}
  if(b.dataset.cmv)moveCat(b.dataset.cmv,+b.dataset.dir);
  if(b.id==='catBtn'){$('#catEdit').hidden=!$('#catEdit').hidden;renderCatEdit();}
  if(b.id==='catDone')$('#catEdit').hidden=true;
