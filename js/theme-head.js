@@ -22,7 +22,7 @@ function uiState(){let s={};try{s=(JSON.parse(localStorage.getItem('dietaApp.v1'
 function applyUI(u){
  u=Object.assign({},UI_DEF,u||uiState());
  const dark=u.theme==='dark'||(u.theme==='auto'&&mqDark.matches), r=document.documentElement, p=PAL[u.pal]||PAL.verde, st=r.style;
- r.dataset.theme=dark?'dark':'light';st.colorScheme=dark?'dark':'light';
+ r.dataset.theme=dark?'dark':'light';st.colorScheme=dark?'dark':'light';st.setProperty('--lg',p.l[0]);
  if(dark){const [a,a2,bg,card,line]=p.d;st.setProperty('--acc',a);st.setProperty('--acc2',a2);st.setProperty('--bg',bg);st.setProperty('--card',card);st.setProperty('--line',line);st.setProperty('--ink','#e9eeeb');st.setProperty('--mute','#97a29c');}
  else{const [a,a2,bg]=p.l;st.setProperty('--acc',a);st.setProperty('--acc2',a2);st.setProperty('--bg',bg);st.setProperty('--card','#fff');st.setProperty('--line',`color-mix(in srgb,${a} 12%,#e6e8e7)`);st.setProperty('--ink','#17201b');st.setProperty('--mute','#65706a');}
  st.setProperty('--font',(FONTS[u.font]||FONTS.sys)[1]);

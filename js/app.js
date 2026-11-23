@@ -1303,6 +1303,9 @@ renderDays();renderPlan();renderPrefWarn();setTab(['piano','diario','spesa','cal
 /* testi che dipendono dal piano e dalle preferenze */
 {const f=sessionStorage.getItem('dietaApp.flash');if(f){sessionStorage.removeItem('dietaApp.flash');setTimeout(()=>toast(f),300);}}
 document.title='La mia dieta'+(PREFS.name?' · '+PREFS.name:'');
+/* logo: «La dieta di» + il nome delle impostazioni (senza nome: «La mia dieta») */
+{const nm=(PREFS.name||'').trim();$('#lgSm').textContent=nm?'La dieta di':'La mia';const b=$('#lgBig');b.textContent=nm||'dieta';b.classList.toggle('lg2',nm.length>11);
+ if(nm)document.title='La dieta di '+nm;}
 $('#listInfo').hidden=!PLAN.days.some(d=>Object.values(d.meals).some(cs=>cs.some(c=>c.list)));
 $('#credits').textContent=PLAN.credits||(PLAN.author?'Piano alimentare elaborato da '+PLAN.author+'.':'');
 $('#xtraInfo').hidden=!XTRA.length;
