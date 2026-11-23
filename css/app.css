@@ -167,7 +167,7 @@ html[data-theme=dark] .seg button.on{color:#0f1411}
 .fontprev button{font-size:14px}
 .set .foot{margin-top:10px}
 html.dense .row{padding:7px 0}html.dense .meal header{padding:8px 14px}html.dense .meals{gap:14px}html.dense .meal+.meal::before{top:-15px;height:14px}html.dense .panel{padding:10px 14px}html.dense .opt{padding:6px 9px}
-html.noemoji .meal h3>span,html.noemoji .tab i{display:none}
+html.noemoji .meal h3>span{display:none}
 html[data-theme=dark] .btn.ghost{color:var(--acc)}html[data-theme=dark] .btn.line{color:var(--mute)}
 .iconbtn.on{border-color:var(--acc);background:var(--acc2)}
 .top{padding-top:calc(14px + env(safe-area-inset-top))}
@@ -231,3 +231,98 @@ details.pnotes{margin:6px 0}details.pnotes summary{cursor:pointer;font-size:14px
 .shist{border-top:1px solid var(--line);padding:8px 0}.shist:first-child{border-top:0}
 .shist summary{cursor:pointer}.shist summary em{color:var(--acc,inherit);font-style:normal}
 .shist ul{margin:8px 0;padding-left:20px;columns:2;column-gap:20px}.shist li{break-inside:avoid;font-size:.95em}
+
+/* ====== STILE A (2026-11): pulito, card senza bande, icone a linee ====== */
+svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.top{border-bottom:0;padding:calc(10px + env(safe-area-inset-top)) 18px 8px;background:color-mix(in srgb,var(--bg) 82%,transparent)}
+.brand{align-items:center}
+.ttl{display:flex;flex-direction:column;align-items:flex-start;min-width:0}
+.brand h1{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1.1}.brand h1 span{color:var(--acc)}
+.today{background:none;padding:0;color:var(--mute);font:700 12px/1.3 inherit;letter-spacing:.05em;text-transform:uppercase;text-align:left;border-radius:6px}
+.today:hover{color:var(--acc)}
+.iconbtn{width:40px;height:40px;border-radius:50%;border:0;background:var(--acc2);color:var(--acc)}
+.iconbtn svg{width:20px;height:20px}
+main{padding:8px 16px 18px}
+/* settimana */
+#days{gap:4px;padding:4px 0 12px}
+#days .chip{border:0;background:none;border-radius:calc(var(--r) - 4px);padding:8px 0 9px;gap:2px;color:var(--ink)}
+#days .chip .wd{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--mute)}
+#days .chip .dn{font-size:18px;font-weight:700;line-height:1.1}
+#days .chip.td .dn{color:var(--acc)}
+#days .chip.on{background:var(--acc);color:#fff}#days .chip.on .wd{color:color-mix(in srgb,#fff 75%,var(--acc))}#days .chip.on .dn{color:#fff}
+html[data-theme=dark] #days .chip.on,html[data-theme=dark] #days .chip.on .dn{color:#0f1411}html[data-theme=dark] #days .chip.on .wd{color:color-mix(in srgb,#0f1411 70%,var(--acc))}
+#days .chip:not(.on):hover{background:var(--acc2)}
+#days .chip .dot{top:6px;right:calc(50% - 16px)}
+#shopDays .chip{border-color:transparent;background:var(--card);box-shadow:var(--sh)}
+/* card */
+.panel,.meal,.cat,.card,.rules{border-color:color-mix(in srgb,var(--line) 55%,transparent);border-radius:calc(var(--r) + 4px)}
+.dayhead{grid-template-columns:auto 1fr;gap:12px 16px;padding:16px 18px}
+.ring{--p:0;width:76px;height:76px;border-radius:50%;border:0;padding:0;cursor:pointer;background:conic-gradient(var(--acc) calc(var(--p)*1%),var(--acc2) 0);display:grid;place-items:center;color:var(--acc)}
+.ring i{width:60px;height:60px;border-radius:50%;background:var(--card);display:grid;place-items:center;font:800 15px/1 inherit;font-style:normal;color:var(--ink)}
+.ring i svg{color:var(--acc);width:22px;height:22px}
+.dh{min-width:0}
+.dayhead h2{font-size:15px;font-weight:700;color:var(--mute);letter-spacing:0;margin:0}
+.dayhead .daykcal{text-align:left;margin:2px 0 0;color:var(--ink)}
+.daykcal b{display:block;font-size:22px;letter-spacing:-.02em;font-weight:800}.daykcal small{font-size:12.5px;color:var(--mute);font-weight:500}
+.dd{margin:2px 0 0;font-size:12.5px;color:var(--acc);font-weight:600}
+.swap{font-weight:600}
+.idea{border-radius:999px;padding:7px 14px;font-size:13.5px;font-weight:500;color:var(--acc)}.idea span{color:var(--acc)}
+.hint.lead{text-align:left;margin:4px 4px 12px;font-size:13px}
+/* pasti */
+.meals{gap:12px}
+.meal{padding:4px 0 6px;overflow:hidden}
+.meal+.meal::before{display:none}
+.meal header{background:none;border-bottom:0;padding:12px 16px 6px;border-radius:0}
+.meal header::before{display:none}
+html.noemoji .meal header::before{display:block;width:34px;height:34px;line-height:34px;border-radius:11px;background:var(--acc2);color:var(--acc)}
+.meal h3{font-size:16.5px;gap:12px}
+.meal h3>span{width:40px;height:40px;border-radius:12px;background:var(--acc2);display:grid;place-items:center;font-size:20px;flex:none}
+.meal header small.mk{margin-left:52px;margin-top:-14px;font-weight:500}
+html.noemoji .meal header small.mk{margin-left:0;margin-top:1px}
+.meal header .btn.ghost{background:none;color:var(--acc);padding:6px 4px;font-size:13.5px}
+.meal.is-free header{background:none}
+.row{padding:11px 0;border-top:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
+.meal header+.row{border-top:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
+.lbl{font-size:11px;letter-spacing:.07em}
+.lbl .state{display:inline;margin:0 0 0 6px;text-transform:none;letter-spacing:0;font-size:11.5px;font-weight:500}
+.val{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px;font-size:15px}.val b{font-weight:600}
+/* alimento scelto */
+.opt.main{width:100%;display:flex;align-items:center;gap:10px;border:0;background:none;padding:4px 0;border-radius:0;font-weight:600;font-size:15px}
+.opt.main .ck{width:22px;height:22px;border-radius:50%;border:1.8px dashed color-mix(in srgb,var(--acc) 60%,var(--mute));opacity:1;margin:0;display:grid;place-items:center;background:none}
+.opt.main.on .ck{background:var(--acc);border:0;color:#fff}html[data-theme=dark] .opt.main.on .ck{color:#0f1411}
+.opt.main .ck svg{width:14px;height:14px;stroke-width:3}
+.opt.main .on1{flex:1;min-width:0}
+.opt.main .od{color:var(--mute);font-weight:500;font-size:13px;white-space:nowrap}
+.opt.main.sug:not(.on){border:0}.opt.main.sug:not(.on) .od:after{content:' · suggerito';color:var(--acc);font-weight:600}
+.opt.main.on{background:none}
+.alts{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 0 32px}.alts:empty{display:none}
+.pill{border:1px solid var(--line);background:var(--bg);color:var(--ink);font:500 13px/1.2 inherit;padding:6px 11px;border-radius:999px;cursor:pointer;text-align:left}
+.pill small{color:var(--mute);font-size:11.5px;margin-left:5px}
+.pill:hover{border-color:var(--acc);color:var(--acc)}
+@media(min-width:720px){.row{grid-template-columns:170px 1fr}.row>.lbl{padding-top:7px}}
+html.dense .row{padding:7px 0}html.dense .opt.main{padding:2px 0}html.dense .pill{padding:4px 9px}html.dense .dayhead{padding:12px 14px}
+/* barra in basso */
+nav.tabs{border-top:1px solid color-mix(in srgb,var(--line) 70%,transparent);padding-top:6px}
+.tab{font-size:11px;gap:3px;padding:6px 4px}
+.tab i svg{width:24px;height:24px}
+.tab.on{background:none;color:var(--acc)}.tab.on i svg{stroke-width:2.2}
+/* titoli di sezione */
+h2{font-weight:800;letter-spacing:-.025em}
+.btn{border-radius:calc(var(--r) - 6px)}
+@media(max-width:420px){.brand h1{font-size:25px}.dayhead{grid-template-columns:auto 1fr}.daykcal b{font-size:20px}}
+.val{display:flex;align-items:baseline;gap:8px;padding:4px 0}.val b{color:var(--mute);font-weight:500;font-size:13px;white-space:nowrap;margin-left:auto}.val .kc{margin-left:0;white-space:nowrap}
+.val small{flex-basis:100%}
+.swap{flex-wrap:nowrap;font-size:13px}.swap span{white-space:nowrap}.swap select{flex:1 1 auto;min-width:0}
+.pill small{font-size:11px}
+.val .vn{flex:1;min-width:0}.val b{margin-left:0}
+
+/* alternative non in lista (Spesa) */
+details.alts{margin-top:14px}details.alts>summary{cursor:pointer;font-weight:650;padding:10px 4px;list-style:none}
+details.alts>summary small{display:block;font-weight:400;color:var(--mute);font-size:.82em;margin-top:2px}
+.altg{margin:10px 0 4px}.altg h5{margin:0 0 4px;font-size:.92em}.altg h5 small{display:block;font-weight:400;color:var(--mute)}
+.altg .item{display:flex;align-items:center;gap:8px;justify-content:space-between}.altg .item .nm{flex:1}
+
+/* STILE A: schede secondarie */
+#shopDays .chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+html[data-theme=dark] #shopDays .chip.on{color:#0f1411}
+#info ul{padding-left:20px;margin:6px 0}#info li{margin:0 0 10px}#info li::marker{color:var(--acc)}

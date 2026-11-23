@@ -25,10 +25,13 @@ const schema=S=>{
 };
 const b64=buf=>{const u=new Uint8Array(buf);let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s);};
 /* legge il PDF con Gemini; restituisce la bozza "grezza" ripulita */
-export async function extract(file){
+/* o.onText: avanzamento (testo JSON arrivato finora) */
+export async function extract(file,o={}){
  if(file.size>MAX_MB*1024*1024)throw new Error('troppo grande');
  const data=b64(await file.arrayBuffer());
- const raw=await askJSON([{text:'Trascrivi questo piano alimentare.'},{inlineData:{mimeType:'application/pdf',data}}],schema,SYS,{models:['gemini-3.8-flash','gemini-3.6-flash','gemini-3.5-flash-lite'],timeout:240000});
+ const raw=await askJSON([{text:'Trascrivi questo piano alimentare.'},{inlineData:{mimeType:'application/pdf',data}}],schema,SYS,Object.assign({models:['gemini-3.8-flash','gemini-3.6-flash','gemini-3.5-flash-lite'],timeout:240000,
+  /* trascrivere non richiede un ragionamento lungo: con il livello basso la risposta arriva molto prima */
+  gen:{thinkingConfig:{thinkingLevel:'LOW'}}},o));
  return clean(raw);
 }
 const num=x=>typeof x==='number'&&isFinite(x)?x:+x;
