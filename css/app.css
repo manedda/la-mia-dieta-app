@@ -401,3 +401,10 @@ html[data-theme=dark] #shopDays .chip.on{color:#0f1411}
 .cdbox,.pvbox{padding:16px 18px}.cdbox h3,.pvbox h3{margin:0 0 10px;font-size:17px}
 .cdq{align-items:center}.cdq input[type=date]{font:inherit;padding:6px 8px;border-radius:10px;border:1px solid var(--line)}
 .pvbox{max-height:85vh;overflow:auto}.pvbox .meal{margin:10px 0}.pvrow{padding:6px 0;border-top:1px solid var(--line);font-size:14px}.pvrow small{display:block;color:var(--mute);font-size:12.5px}.pvrow i{color:var(--mute);font-style:normal;font-size:12.5px}
+/* pasto libero con stima */
+.row.free{text-align:left;display:block}.row.free>p{margin:0 0 8px;text-align:center}
+.row.free .fg{margin:8px 0 0}.row.free .fg>small{display:block;color:var(--mute);font-size:12.5px;margin-bottom:4px}
+.row.free .pill.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.row.free .fmenu>summary{cursor:pointer;font-weight:600;color:var(--acc);margin:6px 0}
+.row.free .fown{margin-top:10px}.row.free [data-freg]{margin-top:10px}
+.row.free .alts{padding:0;margin:0}.row.free .pill.on small{color:#fff;opacity:.85}

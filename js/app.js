@@ -180,7 +180,28 @@ const swapOpts=(sel,own,iso)=>ctxAt(iso).DAYS.map(d=>`<option value="${esc(d.k)}
 /* ====== PIANO (tutti gli alimenti visibili, si spunta quello scelto) ====== */
 const compK=(c,sel)=>{const ks=(sel!=null&&sel!==''?[c.opts[+sel]]:c.opts).map(optK).filter(k=>k!=null);return ks.length?[Math.min(...ks),Math.max(...ks)]:[0,0];};
 const rFmt=([a,b])=>Math.round(a)===Math.round(b)?`${Math.round(a)} kcal`:`${Math.round(a)}–${Math.round(b)} kcal`;
-function dayRange(d,iso){let t=[0,0];MEALS.forEach(([mk])=>(d.meals[mk]||[]).forEach((c,i)=>{if(c.free)return;const k=compK(c,S.picks[pkey(iso,mk,i)]);t[0]+=k[0];t[1]+=k[1];}));return t;}
+/* ====== PASTO LIBERO: stima delle kcal con piatti tipici (valori medi per porzione da pizzeria, fast food o ristorante) ======
+   S.freeSel["data|pasto"] = [{n, k}] = cosa pensi di mangiare; se non scegli niente vale FREE_DEF */
+const FREE_MENU=[
+ ['🍕 Pizze',[['Pizza margherita',800],['Pizza patate e salsiccia',1000],['Pizza canadese (würstel e patatine)',1050],['Pizza diavola',900],['Pizza capricciosa',950],['Pizza quattro formaggi',1000],['Calzone',1000],['Pizza al taglio (2 tranci)',600]]],
+ ['🍔 Panini e fast food',[['Panino hamburger + patatine',950],['Hamburger doppio',750],['Patatine fritte (porzione media)',350],['Kebab',800],['Piadina crudo e squacquerone',650],['Hot dog',400],['Fritto misto (antipasto)',500]]],
+ ['🍝 Ristorante',[['Sushi (circa 20 pezzi)',900],['Poke bowl',650],['Pasta alla carbonara',750],['Lasagne',650],['Risotto',600],['Bistecca con contorno',800],['Fritto misto di pesce',700],['Pane e coperto',200]]],
+ ['🥤 Bevande',[['Coca Cola Zero (33 cl)',1],['Coca Cola (33 cl)',140],['Birra media (40 cl)',170],['Birra piccola (20 cl)',85],['Calice di vino',100],['Spritz',160],['Succo di frutta',120]]],
+ ['🍰 Dolci',[['Tiramisù',350],['Gelato (2 gusti)',250],['Panna cotta',300],['Cheesecake',400],['Torta al cioccolato',400]]]];
+const FREE_DEF={n:'Pasto libero (stima: pizza e bibita zero)',k:1000};
+S.freeSel=S.freeSel||{};
+const fkey=(iso,mk)=>iso+'|'+mk;
+const freeSel=(iso,mk)=>S.freeSel[fkey(iso,mk)]||[];
+/* kcal del pasto libero: quelle segnate nel diario, altrimenti la tua scelta, altrimenti la stima */
+function freeK(iso,mk){const l=dLog(iso).filter(e=>e.m===mk&&!e.skip);if(l.length)return l.reduce((a,e)=>a+(+e.k||0),0);if(l.length===0&&dLog(iso).some(e=>e.m===mk&&e.skip))return 0;
+ const sel=freeSel(iso,mk);return sel.length?sel.reduce((a,x)=>a+(+x.k||0),0):FREE_DEF.k;}
+function freeRow(iso,mk,fut){const sel=freeSel(iso,mk),eaten=dLog(iso).some(e=>e.m===mk&&!e.skip),tot=sel.reduce((a,x)=>a+(+x.k||0),0),has=new Set(sel.map(x=>x.n));
+ return`<div class="row free" data-fiso="${iso}" data-fmk="${mk}"><p>Pasto libero, goditelo 🙂 ${eaten?'Nel diario c\'è quello che hai segnato qui sotto: se hai mangiato altro aggiungilo dal menu.':sel.length?`Previsto: <b>≈ ${Math.round(tot)} kcal</b>.`:`Per il conto della giornata conto <b>≈ ${FREE_DEF.k} kcal</b> (una pizza e una bibita zero): scegli qui sotto cosa pensi di mangiare.`}</p>
+  ${sel.length?`<ul class="log fsel">${sel.map((x,i)=>`<li><span>${esc(x.n)}</span><b>${Math.round(x.k)} kcal</b><button class="x" data-fdel="${i}" aria-label="Togli">×</button></li>`).join('')}</ul>`:''}
+  <details class="fmenu"${sel.length||eaten?'':' open'}><summary>🍽️ Scegli dal menu</summary>${FREE_MENU.map(([g,l])=>`<div class="fg"><small>${g}</small><div class="alts">${l.map(([n,k])=>`<button class="pill${has.has(n)?' on':''}" data-fadd="${esc(n)}" data-fk="${k}">${esc(n)}<small>${k}</small></button>`).join('')}</div></div>`).join('')}
+   <div class="dadd fown"><input data-fn placeholder="Altro piatto (es. Tagliata al ristorante)" autocomplete="off"><input type="number" inputmode="decimal" min="0" step="any" data-fkc placeholder="kcal"><button class="btn sm" data-fown>+</button></div><small class="hint">Se non sai le kcal di un piatto del ristorante, scrivi il nome: se lo trovo nella banca dati le metto io (per 100 g ne conto 300 g).</small></details>
+  ${fut||eaten?'':`<button class="btn line sm" data-freg>✓ Segna nel diario${sel.length?'':' la stima'}</button>`}</div>`;}
+function dayRange(d,iso){let t=[0,0];MEALS.forEach(([mk])=>(d.meals[mk]||[]).forEach((c,i)=>{if(c.free){const k=freeK(iso,mk);t[0]+=k;t[1]+=k;return;}const k=compK(c,S.picks[pkey(iso,mk,i)]);t[0]+=k[0];t[1]+=k[1];}));return t;}
 const CKS='<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>';
 function renderPlan(){
  const iso=S.day, wd=wdOf(iso), d=dayOf(iso), AP=autoPicks(iso), t=todayIso(), fut=iso>t, past=iso<t;
@@ -188,9 +209,9 @@ function renderPlan(){
  $('#daySwap').innerHTML=swapOpts(d.k,wd.k,iso);perNote('#dayPer',iso);$('#daySwap').classList.toggle('alt',d.k!==wd.k);
  $('#dayIdea').innerHTML=d.idea?`<span>💡 Idee della nutrizionista:</span> ${esc(d.idea)}`:'';
  $('#dayIdea').hidden=!d.idea;
- const hasFree=MEALS.some(([mk])=>(d.meals[mk]||[]).some(c=>c.free));
+ const hasFree=MEALS.some(([mk])=>(d.meals[mk]||[]).some(c=>c.free)&&!freeSel(iso,mk).length&&!dLog(iso).some(e=>e.m===mk));
  const dr=dayRange(d,iso), log=dLog(iso), got=Math.round(log.reduce((s,x)=>s+(+x.k||0),0)), mid=(dr[0]+dr[1])/2, pct=mid?Math.min(100,Math.round(got/mid*100)):0;
- $('#dayKcal').innerHTML=`<b>≈ ${rFmt(dr)}</b><small>previste${hasFree?', escluso il pasto libero':''}</small>`;
+ $('#dayKcal').innerHTML=`<b>≈ ${rFmt(dr)}</b><small>previste${hasFree?', con il pasto libero stimato':''}</small>`;
  const rg=$('#dayRing');rg.dataset.wgo=iso;rg.style.setProperty('--p',fut?0:pct);rg.innerHTML=`<i>${fut||!got?'<svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z"/><path d="M9 9h6M9 13h6"/></svg>':pct+'%'}</i>`;
  $('#dayDiary').textContent=fut?'Giorno futuro: le scelte servono per la spesa':got?`Nel diario: ${got} kcal`:log.some(e=>e.skip)?'Nel diario: pasti saltati':'Diario: niente segnato';
  $('#planLead').textContent=fut?'Giorno futuro: tocca un alimento per sceglierlo, o un\'alternativa sotto per cambiarlo. Il cerchio tratteggiato è il suggerito, quello che usano ricetta e spesa finché non scegli.':'Spunta gli alimenti che hai mangiato: tocca quello sopra, oppure un\'alternativa se hai mangiato quella. Toccalo di nuovo per toglierlo. Quello che non spunti non entra nel diario.';
@@ -199,7 +220,7 @@ function renderPlan(){
   if(!comps.length)return'';
   const free=comps[0].free;let mK=[0,0];const nAlt=comps.filter(c=>!c.free&&c.opts.length>1).length,nIt=comps.filter(c=>!c.free).length;
   const rows=comps.map((c,i)=>{
-   if(c.free)return`<div class="row free">Pasto libero, goditelo 🙂</div>`;
+   if(c.free)return freeRow(iso,mk,fut);
    /* oggi e giorni passati: la spunta = l'hai mangiato (voce nel diario); giorni futuri: la spunta = scelto per la spesa */
    const key=pkey(iso,mk,i), sel=S.picks[key], ate=fut?null:log.find(e=>e.pl===`${mk}|${i}`&&!e.skip), sug=isSel(sel)?-1:(AP[key]??-1);
    const sh=ate?(ate.j!=null?+ate.j:pickOf(key,c,AP)):(isSel(sel)?+sel:sug), ck=compK(c,ate?sh:sel);mK[0]+=ck[0];mK[1]+=ck[1];
@@ -218,7 +239,7 @@ function renderPlan(){
 /* piede del pasto nel Piano: stato nel diario, alimenti fuori piano */
 function mealLog(iso,mk,free,log){
  const ents=log.map((e,i)=>({...e,i})).filter(e=>e.m===mk&&!e.pl&&!e.skip), eat=log.filter(e=>e.m===mk&&e.pl&&!e.skip), pk=eat.reduce((a,e)=>a+(+e.k||0),0), skip=log.some(e=>e.m===mk&&e.skip), nr=(dayOf(iso).meals[mk]||[]).filter(c=>!c.free).length;
- const head=free?'':skip?`<span class="sk">Pasto saltato: non conta nel diario</span><button class="btn line sm" data-mclr="${mk}">Annulla</button>`
+ const head=free?(ents.length?`<span class="ok">✓ Nel diario · ${Math.round(ents.reduce((a,e)=>a+(+e.k||0),0))} kcal</span><button class="btn line sm" data-mclr="${mk}">Togli tutto</button>`:''):skip?`<span class="sk">Pasto saltato: non conta nel diario</span><button class="btn line sm" data-mclr="${mk}">Annulla</button>`
   :eat.length?`<span class="ok">✓ ${eat.length} di ${nr} nel diario · ${Math.round(pk)} kcal</span>${eat.length<nr?`<button class="btn line sm" data-mplan="${mk}">Spunta tutto</button>`:''}<button class="btn line sm" data-mclr="${mk}">Togli tutto</button>`
   :`<span class="no">${ents.length?'Segnato a mano':'Niente spuntato'}</span><button class="btn line sm" data-mplan="${mk}">✓ Tutto il pasto</button><button class="btn line sm" data-mskip="${mk}">Saltato</button>`;
  return`<div class="mlog">${head?`<div class="mst">${head}</div>`:''}
@@ -261,7 +282,7 @@ function renderDiary(){
  $('#dTot').innerHTML=`<b>${Math.round(tot)} kcal</b> mangiate · piano ${del(d.k)} ≈ ${rFmt(plan)}`;
  $('#dBar').style.width=`${Math.min(100,tot/(plan[1]||1)*100)}%`;
  const sp=S.dplanned[diaryDate],cid=ctxAt(diaryDate).id;$('#dOld').hidden=!(sp&&sp.plan!==cid);
- if(sp&&sp.plan!==cid)$('#dOld').innerHTML=`Questo giorno è stato registrato con il piano <b>${esc(planTitle(sp.plan))}</b> (previste ≈ ${Math.round(sp.t)} kcal${sp.free?' + pasto libero':''}). Gli alimenti segnati restano quelli; i menu qui sotto sono del piano in vigore quel giorno.`;
+ if(sp&&sp.plan!==cid)$('#dOld').innerHTML=`Questo giorno è stato registrato con il piano <b>${esc(planTitle(sp.plan))}</b> (previste ≈ ${Math.round(sp.t)} kcal${sp.free?' con il pasto libero':''}). Gli alimenti segnati restano quelli; i menu qui sotto sono del piano in vigore quel giorno.`;
  $('#dMeals').innerHTML=MEALS.map(([mk,mn,ic])=>{
   const comps=d.meals[mk]||[], free=comps[0]&&comps[0].free;
   const ents=log.map((e,i)=>({...e,i})).filter(e=>e.m===mk&&!e.x), mt=ents.reduce((a,e)=>a+(+e.k||0),0);
@@ -632,7 +653,7 @@ const inPantry=i=>i.custom==null&&S.pantry&&S.pantry[i.key]===shopDate;
 /* ====== RIEPILOGO SETTIMANALE ====== */
 let wkOff=0;
 function dayPlanned(iso){const d=dayOf(iso),ap=autoPicks(iso);let t=0,free=false;
- MEALS.forEach(([mk])=>(d.meals[mk]||[]).forEach((c,i)=>{if(c.free){free=true;return;}const k=optK(c.opts[pickOf(pkey(iso,mk,i),c,ap)]);if(k!=null)t+=k;}));return{t,free};}
+ MEALS.forEach(([mk])=>(d.meals[mk]||[]).forEach((c,i)=>{if(c.free){free=true;t+=freeK(iso,mk);return;}const k=optK(c.opts[pickOf(pkey(iso,mk,i),c,ap)]);if(k!=null)t+=k;}));return{t,free};}
 function renderWeek(){
  const end=new Date();end.setDate(end.getDate()-7*wkOff);const isos=[];
  for(let i=6;i>=0;i--){const x=new Date(end);x.setDate(end.getDate()-i);isos.push(isoOf(x));}
@@ -645,7 +666,7 @@ function renderWeek(){
  const offN=reg.reduce((s,r)=>s+r.off,0);
  $('#wkSum').innerHTML=reg.length?`<div><b>${avg(reg.map(r=>r.k))}</b><small>kcal medie registrate</small></div><div><b>${avg(reg.map(r=>r.p.t))}</b><small>kcal medie previste</small></div><div><b>${reg.length}/7</b><small>giorni nel diario</small></div><div><b>${offN}</b><small>alimenti fuori piano</small></div>`:'<p class="empty">Nessun giorno registrato nel diario in questa settimana.</p>';
  $('#wkBars').innerHTML=rows.map(r=>{const wd=dateOf(r.iso).toLocaleDateString('it-IT',{weekday:'short'}).replace('.','');const diff=r.k-r.p.t;
-  return`<button class="wk ${r.n?'':'none'}" data-wgo="${r.iso}" title="Apri il diario di questo giorno"><span class="wd">${wd} ${dateOf(r.iso).getDate()}</span><span class="bar"><i style="width:${r.k/max*100}%" class="${r.n&&!r.p.free&&diff>150?'over':''}"></i><em style="left:${r.p.t/max*100}%"></em></span><span class="val">${r.n?`${Math.round(r.k)} <small>/ ${Math.round(r.p.t)}${r.p.free?' + libero':''}</small>`:'<small>non registrato</small>'}${r.off?`<small class="offn">${r.off} fuori piano</small>`:''}</span></button>`;}).join('');
+  return`<button class="wk ${r.n?'':'none'}" data-wgo="${r.iso}" title="Apri il diario di questo giorno"><span class="wd">${wd} ${dateOf(r.iso).getDate()}</span><span class="bar"><i style="width:${r.k/max*100}%" class="${r.n&&diff>150?'over':''}"></i><em style="left:${r.p.t/max*100}%"></em></span><span class="val">${r.n?`${Math.round(r.k)} <small>/ ${Math.round(r.p.t)}${r.p.free?' con libero':''}</small>`:'<small>non registrato</small>'}${r.off?`<small class="offn">${r.off} fuori piano</small>`:''}</span></button>`;}).join('');
 }
 
 /* ====== PIANI ====== */
@@ -689,6 +710,20 @@ async function editStart(from){const e=PERIODS.find(x=>x.from===from);if(!e)retu
 function delStart(from){const e=PERIODS.find(x=>x.from===from);if(!e||PERIODS.length<2)return;const i=PERIODS.indexOf(e),prev=PERIODS[i-1];
  if(!confirm(`Togliere dal calendario «${planTitle(e.plan)}» ${perRange(e)}?\n\n${prev?`Quei giorni useranno «${planTitle(prev.plan)}».`:`Quei giorni useranno «${planTitle(PERIODS[1].plan)}».`} Il piano resta in archivio e il diario non cambia.`))return;
  const st=JSON.parse(JSON.stringify(readPlans()||PLANS));st.cal=calOf(st).filter(x=>x.from!==from);st.cal=calOf(st);applyCal(st,'Tolto dal calendario');}
+function freeAct(b){const w=b.closest('[data-fiso]'),iso=w.dataset.fiso,mk=w.dataset.fmk,k=fkey(iso,mk),sel=(S.freeSel[k]=S.freeSel[k]||[]);
+ const eaten=dLog(iso).some(e=>e.m===mk&&!e.skip);
+ /* già nel diario: il menu aggiunge direttamente lì (al posto della stima generica) */
+ const toDiary=x=>{S.diary[iso]=dLog(iso).filter(e=>!(e.m===mk&&e.n===FREE_DEF.n)).concat([{m:mk,n:x.n,k:x.k,lib:1}]);snapDay(iso);save();rerender();toast('Aggiunto al diario');};
+ if(eaten&&b.dataset.fadd!=null){toDiary({n:b.dataset.fadd,k:+b.dataset.fk});return;}
+ if(b.dataset.fadd!=null){const i=sel.findIndex(x=>x.n===b.dataset.fadd);if(i>=0)sel.splice(i,1);else sel.push({n:b.dataset.fadd,k:+b.dataset.fk});}
+ if(b.dataset.fdel!=null)sel.splice(+b.dataset.fdel,1);
+ if(b.dataset.fown!=null){const n=$('[data-fn]',w).value.trim();let kc=parseFloat(String($('[data-fkc]',w).value).replace(',','.'));if(!n){$('[data-fn]',w).focus();return;}
+  if(!(kc>=0)){const e=foodBest(n);const per=e&&typeof e.k==='number'?e.k:null;if(per==null){toast('Non conosco questo piatto: scrivi le kcal');$('[data-fkc]',w).focus();return;}kc=Math.round(per*3);}
+  if(eaten){toDiary({n,k:kc});return;}sel.push({n,k:kc});}
+ if(b.dataset.freg!=null){const add=(sel.length?sel:[FREE_DEF]).map(x=>({m:mk,n:x.n,k:x.k,lib:1}));S.diary[iso]=dLog(iso).filter(e=>e.m!==mk||e.pl).concat(add);snapDay(iso);toast('Pasto libero segnato nel diario');}
+ if(!sel.length)delete S.freeSel[k];
+ if(b.dataset.fadd==null&&b.dataset.fdel==null&&b.dataset.freg==null&&b.dataset.fown==null)return;
+ snapDay(iso);save();const op=$('.fmenu',w)&&$('.fmenu',w).open;rerender();if(op){const nw=$(`[data-fiso="${iso}"][data-fmk="${mk}"] .fmenu`);if(nw)nw.open=true;}}
 /* ====== SFOGLIA: un piano dell'archivio, solo da guardare ====== */
 let pvId=null,pvDay=0;
 function renderPV(){const c=ctxOf(pvId),r=c.rec,D=c.DAYS,d=D[pvDay]||D[0],u=PERIODS.filter(e=>e.plan===r.id);
@@ -1101,6 +1136,7 @@ document.addEventListener('click',e=>{
  if(b.id==='wIn'){acAction('acIn');return;}
  if(b.id==='wPlan'){setTab('impost');$('#planSet').scrollIntoView({behavior:'smooth'});$('#planFile').click();}
  if(b.id==='planExp')exportPlan();
+ if(b.closest('[data-fiso]')&&(b.dataset.fadd!=null||b.dataset.fdel!=null||b.dataset.fown!=null||b.dataset.freg!=null)){freeAct(b);return;}
  if(b.dataset.pres)resumePlan(b.dataset.pres);
  if(b.dataset.cedit)editStart(b.dataset.cedit);
  if(b.dataset.cdel)delStart(b.dataset.cdel);
