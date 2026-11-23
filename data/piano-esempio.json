@@ -1,0 +1,1512 @@
+{
+ "format": "dieta-plan",
+ "version": 1,
+ "title": "Piano di esempio",
+ "author": "La mia dieta",
+ "credits": "Piano di esempio per provare l'app. Non è un consiglio medico: per la tua dieta rivolgiti a un nutrizionista.",
+ "meals": [
+  {
+   "key": "col",
+   "name": "Colazione",
+   "icon": "☕"
+  },
+  {
+   "key": "mm",
+   "name": "Metà mattina",
+   "icon": "🍎"
+  },
+  {
+   "key": "pra",
+   "name": "Pranzo",
+   "icon": "🍽️"
+  },
+  {
+   "key": "mer",
+   "name": "Merenda",
+   "icon": "🥜"
+  },
+  {
+   "key": "cen",
+   "name": "Cena",
+   "icon": "🌙"
+  }
+ ],
+ "days": [
+  {
+   "key": "lun",
+   "name": "Lunedì",
+   "idea": "Pasta e ceci con un filo d'olio a crudo",
+   "meals": {
+    "col": [
+     {
+      "type": "latte",
+      "label": "Latte",
+      "options": [
+       {
+        "name": "Latte parzialmente scremato di vacca",
+        "qty": 200,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "cerealicol",
+      "label": "Fette biscottate",
+      "options": [
+       {
+        "name": "Fette biscottate integrali",
+        "qty": 30,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "marmellata",
+      "label": "Marmellata",
+      "options": [
+       {
+        "name": "Marmellata",
+        "qty": 2,
+        "unit": "cucchiaini"
+       }
+      ]
+     }
+    ],
+    "mm": [
+     {
+      "type": "frutta",
+      "label": "Frutta fresca",
+      "options": [
+       {
+        "name": "Frutta fresca di stagione",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     }
+    ],
+    "pra": [
+     {
+      "type": "primo",
+      "label": "Primo",
+      "options": [
+       {
+        "name": "Pasta integrale",
+        "qty": 80,
+        "unit": "g"
+       },
+       {
+        "name": "Riso",
+        "qty": 80,
+        "unit": "g"
+       },
+       {
+        "name": "Pasta di semola",
+        "qty": 80,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "legumi",
+      "label": "Legumi secchi",
+      "options": [
+       {
+        "name": "Ceci secchi",
+        "qty": 60,
+        "unit": "g"
+       },
+       {
+        "name": "Lenticchie secche",
+        "qty": 60,
+        "unit": "g"
+       },
+       {
+        "name": "Fagioli secchi",
+        "qty": 60,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "verdure",
+      "label": "Contorno di verdure",
+      "options": [
+       {
+        "name": "Misto di verdure cotte",
+        "qty": 1,
+        "unit": "porzione"
+       },
+       {
+        "name": "Misto di verdure crude",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     },
+     {
+      "type": "pane",
+      "label": "Pane",
+      "options": [
+       {
+        "name": "Pane integrale",
+        "qty": 50,
+        "unit": "g"
+       },
+       {
+        "name": "Pane bianco",
+        "qty": 40,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "olio",
+      "label": "Olio",
+      "options": [
+       {
+        "name": "Olio extra vergine di oliva",
+        "qty": 2,
+        "unit": "cucchiaini"
+       }
+      ]
+     }
+    ],
+    "mer": [
+     {
+      "type": "crackers",
+      "label": "Crackers",
+      "options": [
+       {
+        "name": "Crackers integrali",
+        "qty": 30,
+        "unit": "g"
+       }
+      ]
+     }
+    ],
+    "cen": [
+     {
+      "type": "pesce",
+      "label": "Pesce",
+      "options": [
+       {
+        "name": "Merluzzo o Nasello",
+        "qty": 200,
+        "unit": "g"
+       },
+       {
+        "name": "Orata",
+        "qty": 180,
+        "unit": "g"
+       },
+       {
+        "name": "Salmone fresco",
+        "qty": 130,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "verdure",
+      "label": "Contorno di verdure",
+      "options": [
+       {
+        "name": "Misto di verdure cotte",
+        "qty": 1,
+        "unit": "porzione"
+       },
+       {
+        "name": "Misto di verdure crude",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     },
+     {
+      "type": "pane",
+      "label": "Pane",
+      "options": [
+       {
+        "name": "Pane integrale",
+        "qty": 50,
+        "unit": "g"
+       },
+       {
+        "name": "Pane bianco",
+        "qty": 40,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "olio",
+      "label": "Olio",
+      "options": [
+       {
+        "name": "Olio extra vergine di oliva",
+        "qty": 2,
+        "unit": "cucchiaini"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "key": "mar",
+   "name": "Martedì",
+   "idea": "Insalata di riso con tonno e verdure",
+   "meals": {
+    "col": [
+     {
+      "type": "yogurt",
+      "label": "Yogurt",
+      "options": [
+       {
+        "name": "Yogurt greco da latte scremato (150 g)",
+        "qty": 1,
+        "unit": "vasetto"
+       }
+      ]
+     },
+     {
+      "type": "fruttasecca",
+      "label": "Frutta secca",
+      "options": [
+       {
+        "name": "Mandorle",
+        "qty": 15,
+        "unit": "g"
+       },
+       {
+        "name": "Noci secche",
+        "qty": 15,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "frutta",
+      "label": "Frutta fresca",
+      "options": [
+       {
+        "name": "Frutta fresca di stagione",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     }
+    ],
+    "mm": [
+     {
+      "type": "frutta",
+      "label": "Frutta fresca",
+      "options": [
+       {
+        "name": "Frutta fresca di stagione",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     }
+    ],
+    "pra": [
+     {
+      "type": "primo",
+      "label": "Primo",
+      "options": [
+       {
+        "name": "Pasta integrale",
+        "qty": 80,
+        "unit": "g"
+       },
+       {
+        "name": "Riso",
+        "qty": 80,
+        "unit": "g"
+       },
+       {
+        "name": "Pasta di semola",
+        "qty": 80,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "pescecons",
+      "label": "Pesce in scatola",
+      "options": [
+       {
+        "name": "Tonno al naturale",
+        "qty": 80,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "verdure",
+      "label": "Contorno di verdure",
+      "options": [
+       {
+        "name": "Misto di verdure cotte",
+        "qty": 1,
+        "unit": "porzione"
+       },
+       {
+        "name": "Misto di verdure crude",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     },
+     {
+      "type": "pane",
+      "label": "Pane",
+      "options": [
+       {
+        "name": "Pane integrale",
+        "qty": 50,
+        "unit": "g"
+       },
+       {
+        "name": "Pane bianco",
+        "qty": 40,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "olio",
+      "label": "Olio",
+      "options": [
+       {
+        "name": "Olio extra vergine di oliva",
+        "qty": 2,
+        "unit": "cucchiaini"
+       }
+      ]
+     }
+    ],
+    "mer": [
+     {
+      "type": "fruttasecca",
+      "label": "Frutta secca",
+      "options": [
+       {
+        "name": "Mandorle",
+        "qty": 20,
+        "unit": "g"
+       },
+       {
+        "name": "Nocciole",
+        "qty": 20,
+        "unit": "g"
+       },
+       {
+        "name": "Noci secche",
+        "qty": 20,
+        "unit": "g"
+       }
+      ]
+     }
+    ],
+    "cen": [
+     {
+      "type": "carne",
+      "label": "Carne",
+      "options": [
+       {
+        "name": "Petto di pollo",
+        "qty": 150,
+        "unit": "g"
+       },
+       {
+        "name": "Petto di tacchino",
+        "qty": 150,
+        "unit": "g"
+       },
+       {
+        "name": "Manzo magro",
+        "qty": 130,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "verdure",
+      "label": "Contorno di verdure",
+      "options": [
+       {
+        "name": "Misto di verdure cotte",
+        "qty": 1,
+        "unit": "porzione"
+       },
+       {
+        "name": "Misto di verdure crude",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     },
+     {
+      "type": "pane",
+      "label": "Pane",
+      "options": [
+       {
+        "name": "Pane integrale",
+        "qty": 50,
+        "unit": "g"
+       },
+       {
+        "name": "Pane bianco",
+        "qty": 40,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "olio",
+      "label": "Olio",
+      "options": [
+       {
+        "name": "Olio extra vergine di oliva",
+        "qty": 2,
+        "unit": "cucchiaini"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "key": "mer",
+   "name": "Mercoledì",
+   "idea": "Frittata al forno con zucchine",
+   "meals": {
+    "col": [
+     {
+      "type": "latte",
+      "label": "Latte",
+      "options": [
+       {
+        "name": "Latte parzialmente scremato di vacca",
+        "qty": 200,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "cerealicol",
+      "label": "Fette biscottate",
+      "options": [
+       {
+        "name": "Fette biscottate integrali",
+        "qty": 30,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "marmellata",
+      "label": "Marmellata",
+      "options": [
+       {
+        "name": "Marmellata",
+        "qty": 2,
+        "unit": "cucchiaini"
+       }
+      ]
+     }
+    ],
+    "mm": [
+     {
+      "type": "frutta",
+      "label": "Frutta fresca",
+      "options": [
+       {
+        "name": "Frutta fresca di stagione",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     }
+    ],
+    "pra": [
+     {
+      "type": "primo",
+      "label": "Primo",
+      "options": [
+       {
+        "name": "Pasta integrale",
+        "qty": 80,
+        "unit": "g"
+       },
+       {
+        "name": "Riso",
+        "qty": 80,
+        "unit": "g"
+       },
+       {
+        "name": "Pasta di semola",
+        "qty": 80,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "formaggio",
+      "label": "Formaggio",
+      "options": [
+       {
+        "name": "Mozzarella light",
+        "qty": 100,
+        "unit": "g",
+        "kcal100": 165
+       },
+       {
+        "name": "Ricotta di vacca",
+        "qty": 120,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "verdure",
+      "label": "Contorno di verdure",
+      "options": [
+       {
+        "name": "Misto di verdure cotte",
+        "qty": 1,
+        "unit": "porzione"
+       },
+       {
+        "name": "Misto di verdure crude",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     },
+     {
+      "type": "pane",
+      "label": "Pane",
+      "options": [
+       {
+        "name": "Pane integrale",
+        "qty": 50,
+        "unit": "g"
+       },
+       {
+        "name": "Pane bianco",
+        "qty": 40,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "olio",
+      "label": "Olio",
+      "options": [
+       {
+        "name": "Olio extra vergine di oliva",
+        "qty": 2,
+        "unit": "cucchiaini"
+       }
+      ]
+     }
+    ],
+    "mer": [
+     {
+      "type": "crackers",
+      "label": "Crackers",
+      "options": [
+       {
+        "name": "Crackers integrali",
+        "qty": 30,
+        "unit": "g"
+       }
+      ]
+     }
+    ],
+    "cen": [
+     {
+      "type": "uova",
+      "label": "Uova",
+      "options": [
+       {
+        "name": "Uova di gallina",
+        "qty": 2,
+        "unit": "pz"
+       }
+      ]
+     },
+     {
+      "type": "verdure",
+      "label": "Contorno di verdure",
+      "options": [
+       {
+        "name": "Misto di verdure cotte",
+        "qty": 1,
+        "unit": "porzione"
+       },
+       {
+        "name": "Misto di verdure crude",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     },
+     {
+      "type": "pane",
+      "label": "Pane",
+      "options": [
+       {
+        "name": "Pane integrale",
+        "qty": 50,
+        "unit": "g"
+       },
+       {
+        "name": "Pane bianco",
+        "qty": 40,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "olio",
+      "label": "Olio",
+      "options": [
+       {
+        "name": "Olio extra vergine di oliva",
+        "qty": 2,
+        "unit": "cucchiaini"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "key": "gio",
+   "name": "Giovedì",
+   "idea": "Zuppa di lenticchie",
+   "meals": {
+    "col": [
+     {
+      "type": "yogurt",
+      "label": "Yogurt",
+      "options": [
+       {
+        "name": "Yogurt greco da latte scremato (150 g)",
+        "qty": 1,
+        "unit": "vasetto"
+       }
+      ]
+     },
+     {
+      "type": "fruttasecca",
+      "label": "Frutta secca",
+      "options": [
+       {
+        "name": "Mandorle",
+        "qty": 15,
+        "unit": "g"
+       },
+       {
+        "name": "Noci secche",
+        "qty": 15,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "frutta",
+      "label": "Frutta fresca",
+      "options": [
+       {
+        "name": "Frutta fresca di stagione",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     }
+    ],
+    "mm": [
+     {
+      "type": "frutta",
+      "label": "Frutta fresca",
+      "options": [
+       {
+        "name": "Frutta fresca di stagione",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     }
+    ],
+    "pra": [
+     {
+      "type": "primo",
+      "label": "Primo",
+      "options": [
+       {
+        "name": "Pasta integrale",
+        "qty": 80,
+        "unit": "g"
+       },
+       {
+        "name": "Riso",
+        "qty": 80,
+        "unit": "g"
+       },
+       {
+        "name": "Pasta di semola",
+        "qty": 80,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "legumi",
+      "label": "Legumi secchi",
+      "options": [
+       {
+        "name": "Ceci secchi",
+        "qty": 60,
+        "unit": "g"
+       },
+       {
+        "name": "Lenticchie secche",
+        "qty": 60,
+        "unit": "g"
+       },
+       {
+        "name": "Fagioli secchi",
+        "qty": 60,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "verdure",
+      "label": "Contorno di verdure",
+      "options": [
+       {
+        "name": "Misto di verdure cotte",
+        "qty": 1,
+        "unit": "porzione"
+       },
+       {
+        "name": "Misto di verdure crude",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     },
+     {
+      "type": "pane",
+      "label": "Pane",
+      "options": [
+       {
+        "name": "Pane integrale",
+        "qty": 50,
+        "unit": "g"
+       },
+       {
+        "name": "Pane bianco",
+        "qty": 40,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "olio",
+      "label": "Olio",
+      "options": [
+       {
+        "name": "Olio extra vergine di oliva",
+        "qty": 2,
+        "unit": "cucchiaini"
+       }
+      ]
+     }
+    ],
+    "mer": [
+     {
+      "type": "fruttasecca",
+      "label": "Frutta secca",
+      "options": [
+       {
+        "name": "Mandorle",
+        "qty": 20,
+        "unit": "g"
+       },
+       {
+        "name": "Nocciole",
+        "qty": 20,
+        "unit": "g"
+       },
+       {
+        "name": "Noci secche",
+        "qty": 20,
+        "unit": "g"
+       }
+      ]
+     }
+    ],
+    "cen": [
+     {
+      "type": "salume",
+      "label": "Salume",
+      "options": [
+       {
+        "name": "Bresaola",
+        "qty": 70,
+        "unit": "g"
+       },
+       {
+        "name": "Prosciutto crudo magro",
+        "qty": 60,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "verdure",
+      "label": "Contorno di verdure",
+      "options": [
+       {
+        "name": "Misto di verdure cotte",
+        "qty": 1,
+        "unit": "porzione"
+       },
+       {
+        "name": "Misto di verdure crude",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     },
+     {
+      "type": "pane",
+      "label": "Pane",
+      "options": [
+       {
+        "name": "Pane integrale",
+        "qty": 50,
+        "unit": "g"
+       },
+       {
+        "name": "Pane bianco",
+        "qty": 40,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "olio",
+      "label": "Olio",
+      "options": [
+       {
+        "name": "Olio extra vergine di oliva",
+        "qty": 2,
+        "unit": "cucchiaini"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "key": "ven",
+   "name": "Venerdì",
+   "idea": "Pesce al cartoccio con patate",
+   "meals": {
+    "col": [
+     {
+      "type": "latte",
+      "label": "Latte",
+      "options": [
+       {
+        "name": "Latte parzialmente scremato di vacca",
+        "qty": 200,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "cerealicol",
+      "label": "Fette biscottate",
+      "options": [
+       {
+        "name": "Fette biscottate integrali",
+        "qty": 30,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "marmellata",
+      "label": "Marmellata",
+      "options": [
+       {
+        "name": "Marmellata",
+        "qty": 2,
+        "unit": "cucchiaini"
+       }
+      ]
+     }
+    ],
+    "mm": [
+     {
+      "type": "frutta",
+      "label": "Frutta fresca",
+      "options": [
+       {
+        "name": "Frutta fresca di stagione",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     }
+    ],
+    "pra": [
+     {
+      "type": "primo",
+      "label": "Primo",
+      "options": [
+       {
+        "name": "Pasta integrale",
+        "qty": 80,
+        "unit": "g"
+       },
+       {
+        "name": "Riso",
+        "qty": 80,
+        "unit": "g"
+       },
+       {
+        "name": "Pasta di semola",
+        "qty": 80,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "pescecons",
+      "label": "Pesce in scatola",
+      "options": [
+       {
+        "name": "Tonno al naturale",
+        "qty": 80,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "verdure",
+      "label": "Contorno di verdure",
+      "options": [
+       {
+        "name": "Misto di verdure cotte",
+        "qty": 1,
+        "unit": "porzione"
+       },
+       {
+        "name": "Misto di verdure crude",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     },
+     {
+      "type": "pane",
+      "label": "Pane",
+      "options": [
+       {
+        "name": "Pane integrale",
+        "qty": 50,
+        "unit": "g"
+       },
+       {
+        "name": "Pane bianco",
+        "qty": 40,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "olio",
+      "label": "Olio",
+      "options": [
+       {
+        "name": "Olio extra vergine di oliva",
+        "qty": 2,
+        "unit": "cucchiaini"
+       }
+      ]
+     }
+    ],
+    "mer": [
+     {
+      "type": "crackers",
+      "label": "Crackers",
+      "options": [
+       {
+        "name": "Crackers integrali",
+        "qty": 30,
+        "unit": "g"
+       }
+      ]
+     }
+    ],
+    "cen": [
+     {
+      "type": "pesce",
+      "label": "Pesce",
+      "options": [
+       {
+        "name": "Merluzzo o Nasello",
+        "qty": 200,
+        "unit": "g"
+       },
+       {
+        "name": "Orata",
+        "qty": 180,
+        "unit": "g"
+       },
+       {
+        "name": "Salmone fresco",
+        "qty": 130,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "verdure",
+      "label": "Contorno di verdure",
+      "options": [
+       {
+        "name": "Misto di verdure cotte",
+        "qty": 1,
+        "unit": "porzione"
+       },
+       {
+        "name": "Misto di verdure crude",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     },
+     {
+      "type": "pane",
+      "label": "Pane",
+      "options": [
+       {
+        "name": "Pane integrale",
+        "qty": 50,
+        "unit": "g"
+       },
+       {
+        "name": "Pane bianco",
+        "qty": 40,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "olio",
+      "label": "Olio",
+      "options": [
+       {
+        "name": "Olio extra vergine di oliva",
+        "qty": 2,
+        "unit": "cucchiaini"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "key": "sab",
+   "name": "Sabato",
+   "idea": "Pollo al limone",
+   "meals": {
+    "col": [
+     {
+      "type": "yogurt",
+      "label": "Yogurt",
+      "options": [
+       {
+        "name": "Yogurt greco da latte scremato (150 g)",
+        "qty": 1,
+        "unit": "vasetto"
+       }
+      ]
+     },
+     {
+      "type": "fruttasecca",
+      "label": "Frutta secca",
+      "options": [
+       {
+        "name": "Mandorle",
+        "qty": 15,
+        "unit": "g"
+       },
+       {
+        "name": "Noci secche",
+        "qty": 15,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "frutta",
+      "label": "Frutta fresca",
+      "options": [
+       {
+        "name": "Frutta fresca di stagione",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     }
+    ],
+    "mm": [
+     {
+      "type": "frutta",
+      "label": "Frutta fresca",
+      "options": [
+       {
+        "name": "Frutta fresca di stagione",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     }
+    ],
+    "pra": [
+     {
+      "type": "primo",
+      "label": "Primo",
+      "options": [
+       {
+        "name": "Pasta integrale",
+        "qty": 80,
+        "unit": "g"
+       },
+       {
+        "name": "Riso",
+        "qty": 80,
+        "unit": "g"
+       },
+       {
+        "name": "Pasta di semola",
+        "qty": 80,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "carne",
+      "label": "Carne",
+      "options": [
+       {
+        "name": "Petto di pollo",
+        "qty": 150,
+        "unit": "g"
+       },
+       {
+        "name": "Petto di tacchino",
+        "qty": 150,
+        "unit": "g"
+       },
+       {
+        "name": "Manzo magro",
+        "qty": 130,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "verdure",
+      "label": "Contorno di verdure",
+      "options": [
+       {
+        "name": "Misto di verdure cotte",
+        "qty": 1,
+        "unit": "porzione"
+       },
+       {
+        "name": "Misto di verdure crude",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     },
+     {
+      "type": "pane",
+      "label": "Pane",
+      "options": [
+       {
+        "name": "Pane integrale",
+        "qty": 50,
+        "unit": "g"
+       },
+       {
+        "name": "Pane bianco",
+        "qty": 40,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "olio",
+      "label": "Olio",
+      "options": [
+       {
+        "name": "Olio extra vergine di oliva",
+        "qty": 2,
+        "unit": "cucchiaini"
+       }
+      ]
+     }
+    ],
+    "mer": [
+     {
+      "type": "fruttasecca",
+      "label": "Frutta secca",
+      "options": [
+       {
+        "name": "Mandorle",
+        "qty": 20,
+        "unit": "g"
+       },
+       {
+        "name": "Nocciole",
+        "qty": 20,
+        "unit": "g"
+       },
+       {
+        "name": "Noci secche",
+        "qty": 20,
+        "unit": "g"
+       }
+      ]
+     }
+    ],
+    "cen": [
+     {
+      "type": "formaggio",
+      "label": "Formaggio",
+      "options": [
+       {
+        "name": "Mozzarella light",
+        "qty": 100,
+        "unit": "g",
+        "kcal100": 165
+       },
+       {
+        "name": "Ricotta di vacca",
+        "qty": 120,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "verdure",
+      "label": "Contorno di verdure",
+      "options": [
+       {
+        "name": "Misto di verdure cotte",
+        "qty": 1,
+        "unit": "porzione"
+       },
+       {
+        "name": "Misto di verdure crude",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     },
+     {
+      "type": "pane",
+      "label": "Pane",
+      "options": [
+       {
+        "name": "Pane integrale",
+        "qty": 50,
+        "unit": "g"
+       },
+       {
+        "name": "Pane bianco",
+        "qty": 40,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "olio",
+      "label": "Olio",
+      "options": [
+       {
+        "name": "Olio extra vergine di oliva",
+        "qty": 2,
+        "unit": "cucchiaini"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "key": "dom",
+   "name": "Domenica",
+   "idea": "Pranzo libero, cena leggera",
+   "meals": {
+    "col": [
+     {
+      "type": "latte",
+      "label": "Latte",
+      "options": [
+       {
+        "name": "Latte parzialmente scremato di vacca",
+        "qty": 200,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "cerealicol",
+      "label": "Fette biscottate",
+      "options": [
+       {
+        "name": "Fette biscottate integrali",
+        "qty": 30,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "marmellata",
+      "label": "Marmellata",
+      "options": [
+       {
+        "name": "Marmellata",
+        "qty": 2,
+        "unit": "cucchiaini"
+       }
+      ]
+     }
+    ],
+    "mm": [
+     {
+      "type": "frutta",
+      "label": "Frutta fresca",
+      "options": [
+       {
+        "name": "Frutta fresca di stagione",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     }
+    ],
+    "pra": [
+     {
+      "type": "libera",
+      "label": "Pranzo libero",
+      "options": [
+       {
+        "name": "Pranzo libero",
+        "qty": 0,
+        "unit": ""
+       }
+      ],
+      "free": true
+     }
+    ],
+    "mer": [
+     {
+      "type": "fruttasecca",
+      "label": "Frutta secca",
+      "options": [
+       {
+        "name": "Mandorle",
+        "qty": 20,
+        "unit": "g"
+       },
+       {
+        "name": "Nocciole",
+        "qty": 20,
+        "unit": "g"
+       },
+       {
+        "name": "Noci secche",
+        "qty": 20,
+        "unit": "g"
+       }
+      ]
+     }
+    ],
+    "cen": [
+     {
+      "type": "uova",
+      "label": "Uova",
+      "options": [
+       {
+        "name": "Uova di gallina",
+        "qty": 2,
+        "unit": "pz"
+       }
+      ]
+     },
+     {
+      "type": "verdure",
+      "label": "Contorno di verdure",
+      "options": [
+       {
+        "name": "Misto di verdure cotte",
+        "qty": 1,
+        "unit": "porzione"
+       },
+       {
+        "name": "Misto di verdure crude",
+        "qty": 1,
+        "unit": "porzione"
+       }
+      ]
+     },
+     {
+      "type": "pane",
+      "label": "Pane",
+      "options": [
+       {
+        "name": "Pane integrale",
+        "qty": 50,
+        "unit": "g"
+       },
+       {
+        "name": "Pane bianco",
+        "qty": 40,
+        "unit": "g"
+       }
+      ]
+     },
+     {
+      "type": "olio",
+      "label": "Olio",
+      "options": [
+       {
+        "name": "Olio extra vergine di oliva",
+        "qty": 2,
+        "unit": "cucchiaini"
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

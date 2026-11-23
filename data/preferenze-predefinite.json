@@ -1,0 +1,32 @@
+{
+ "format": "dieta-prefs",
+ "version": 1,
+ "name": "",
+ "shopping": {
+  "fixed": {},
+  "rotate": {
+   "carne": {
+    "max": 5
+   },
+   "pesce": {
+    "max": 5
+   },
+   "primo": {
+    "max": 2
+   },
+   "formaggio": {
+    "max": 3
+   },
+   "salume": {
+    "max": 2
+   },
+   "pescecons": {
+    "max": 2
+   },
+   "legumi": {
+    "max": 2
+   }
+  }
+ },
+ "breakfastExtras": []
+}

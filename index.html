@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2f6f4f">
+<meta name="robots" content="noindex">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Dieta">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>La mia dieta</title>
+<link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
+<link rel="stylesheet" href="css/app.css">
+<script src="js/theme-head.js"></script>
+</head>
+<body>
+<div class="top"><div class="wrap">
+ <div class="brand"><h1>🥗 La mia <span>dieta</span></h1><div class="tr"><button class="today" id="today" title="Vai al piano di oggi"></button><button class="iconbtn" id="themeBtn" aria-label="Tema chiaro o scuro">🌙</button><button class="iconbtn" id="setBtn" aria-label="Impostazioni" title="Impostazioni">⚙️</button></div></div>
+</div></div>
+<main class="wrap">
+ <section id="piano">
+  <div class="warnbox welcome" id="welcome" hidden></div>
+  <div class="warnbox" id="prefWarn" hidden></div>
+  <nav class="chips" id="days" aria-label="Giorno della settimana"></nav>
+  <div class="panel dayhead"><h2 id="dayTitle"></h2><p class="daykcal" id="dayKcal"></p>
+   <div class="swap"><span>Segui il piano di</span><select id="daySwap" aria-label="Piano da seguire"></select><button class="btn line sm" id="swapReset" hidden>Ripristina la settimana</button></div>
+   <div class="idea" id="dayIdea"></div></div>
+  <p class="hint lead">Spunta un alimento per categoria (tocca di nuovo per toglierlo). Ricetta, spesa e diario usano le tue spunte; dove non hai spuntato usano il suggerito (bordo tratteggiato).</p>
+  <div class="meals" id="meals"></div>
+  <div class="foot"><button class="btn line sm" id="resetPicks">Azzera le scelte</button></div>
+ </section>
+ <section id="spesa" hidden>
+  <div class="shophead"><h2>Lista della spesa</h2><span class="hint" id="shopCount"></span></div>
+  <div class="progress"><i id="shopBar"></i></div>
+  <p class="hint">Scegli i giorni. Trovi prodotti precisi, senza doppioni: dove non hai spuntato nel Piano c'è il suggerito (bordo tratteggiato). Con 🏠 sposti in dispensa quello che hai già a casa. Spunta quello che compri: resta salvato nella spesa del giorno scelto.</p>
+  <nav class="chips" id="shopDays"></nav>
+  <div class="tools"><button class="btn ghost sm" id="allDays">Tutta la settimana</button><button class="btn line sm" id="noDays">Nessun giorno</button><button class="btn line sm" id="clearChecked">Togli le spunte</button><button class="btn line sm" id="restoreHidden" hidden></button><button class="btn line sm" id="catBtn">↕️ Ordine reparti</button><button class="btn sm" id="shareShop">Condividi lista</button></div>
+  <div class="dnav sdate"><span>🗓️ Spesa del</span><input type="date" id="sDate" aria-label="Giorno in cui fai la spesa"><button class="btn ghost sm" id="sToday" hidden>Oggi</button></div>
+  <div class="card" id="catEdit" hidden></div>
+  <form class="add" id="addForm"><input id="addName" placeholder="Aggiungi altro (es. detersivo)" autocomplete="off"><select id="addCat"></select><button class="btn">+</button></form>
+  <div id="shopList"></div>
+  <div class="panel" id="shopHistBox" style="margin-top:20px" hidden><h4 class="sub">🧾 Spese registrate</h4><p class="hint">Quello che spunti viene salvato nella spesa del giorno scelto sopra.</p><div id="shopHist"></div></div>
+ </section>
+ <section id="diario" hidden>
+  <div class="panel dsum"><h2>Diario alimentare</h2>
+  <div class="dnav"><button class="btn line sm" data-dshift="-1" aria-label="Giorno prima">‹</button><input type="date" id="dDate"><button class="btn line sm" data-dshift="1" aria-label="Giorno dopo">›</button><button class="btn ghost sm" id="dToday">Oggi</button></div>
+  <h3 class="dtitle" id="dTitle"></h3>
+  <div class="swap"><span>Piano seguito</span><select id="dSwap" aria-label="Piano seguito quel giorno"></select></div>
+  <p class="hint" id="dTot"></p><div class="progress"><i id="dBar"></i></div></div>
+  <p class="warnbox soft" id="dOld" hidden></p>
+  <div class="meals" id="dMeals"></div>
+  <div class="panel" style="margin-top:20px"><h4 class="sub">Giorni registrati</h4><nav class="chips wrapc" id="dHist"></nav></div>
+ </section>
+ <section id="calorie" hidden>
+  <h2>Calorie e riepilogo</h2>
+  <p class="hint">Valori medi indicativi da tabelle di composizione degli alimenti; possono variare per marca e cottura. Due alimenti con le stesse calorie non hanno per forza le stesse proteine, grassi e fibre: per i cambi abituali senti la nutrizionista.</p>
+  <div class="card"><div class="wkhead"><h4 id="wkTitle">Ultimi 7 giorni</h4><button class="btn line sm" data-wk="1" aria-label="Settimana prima">‹</button><button class="btn line sm" data-wk="-1" id="wkNext" aria-label="Settimana dopo">›</button></div>
+   <div class="wksum" id="wkSum"></div><div id="wkBars"></div>
+   <p class="wkleg"><i></i> kcal registrate nel diario <em></em> previste dal piano (spunte o suggeriti). Tocca un giorno per aprirlo nel diario.</p></div>
+  <div class="card"><h4>🔁 Convertitore</h4>
+   <label class="field">Alimento del piano<select id="cFrom"></select></label>
+   <label class="field">Quantità<span class="inl"><input id="cQ" type="number" inputmode="decimal" min="0" step="any"><span id="cU">g</span></span></label>
+   <label class="field">Sostituiscilo con<input id="cTo" list="foodList" placeholder="Cerca un alimento, anche fuori piano…" autocomplete="off"></label>
+   <div id="cRes"></div></div>
+  <div class="card"><h4>⭐ Aggiungi un alimento</h4><p class="hint">Copia le kcal per 100 g dall'etichetta: l'alimento comparirà nel convertitore e nel diario.</p>
+   <form class="add" id="cfForm" style="margin:8px 0 0"><input id="cfN" placeholder="Nome (es. Pane carasau)" autocomplete="off"><input id="cfK" type="number" inputmode="decimal" min="0" step="any" placeholder="kcal/100 g" style="flex:none;width:112px"><button class="btn">+</button></form></div>
+  <input class="search" id="kSearch" type="search" placeholder="🔍 Cerca nella tabella delle calorie…">
+  <div id="kTable"></div>
+ </section>
+ <datalist id="foodList"></datalist>
+
+ <section id="impost" hidden>
+  <h2>⚙️ Impostazioni</h2>
+  <div class="panel set" id="acctSet"><h3>☁️ Account</h3><div id="acct"></div></div>
+  <div class="panel set"><h3>🎨 Aspetto</h3>
+   <div class="setrow"><span>Tema</span><div class="seg" data-set="theme"></div></div>
+   <div class="setrow"><span>Colore</span><div class="sw" data-set="pal"></div></div>
+   <div class="setrow"><span>Carattere</span><div class="seg fontprev" data-set="font"></div></div>
+   <div class="setrow"><span>Dimensione testo</span><div class="seg" data-set="size"></div></div>
+   <div class="setrow"><span>Angoli</span><div class="seg" data-set="rad"></div></div>
+   <div class="setrow"><span>Spaziatura</span><div class="seg" data-set="dense"></div></div>
+   <div class="setrow"><span>Ombre</span><div class="seg" data-set="shadow"></div></div>
+   <div class="setrow"><span>Icone</span><div class="seg" data-set="emoji"></div></div>
+   <div class="foot"><button class="btn line sm" id="uiReset">Ripristina la grafica predefinita</button></div>
+  </div>
+  <div class="panel set" id="planSet"><h3>📋 Piano alimentare</h3>
+   <div id="planCur"></div>
+   <div id="planList"></div>
+   <div class="bkrow"><button class="btn sm" id="planImp">⬆️ Carica da file</button><button class="btn sm" id="planPdf">📄 Carica da PDF</button><button class="btn line sm" id="planExp">⬇️ Esporta il piano attivo</button><input type="file" id="planFile" accept=".json,application/json" hidden><input type="file" id="pdfFile" accept=".pdf,application/pdf" hidden></div>
+   <p class="hint">Puoi caricare il PDF del nutrizionista (lo legge l'AI, serve l'accesso con Google; prima di salvare controlli tutto) oppure un file nel formato dell'app. Quello vecchio resta in archivio: puoi tornarci quando vuoi, con le scelte che avevi fatto. Il diario non cambia.</p>
+   <h3 class="sub2">🧩 Preferenze e piano</h3>
+   <div id="prefCheck"></div>
+  </div>
+  <div class="panel set" id="prefSet"><h3>🧺 Le mie preferenze</h3>
+   <p class="hint">Valgono per il piano attivo: se cambi piano, ognuno tiene le sue.</p>
+   <div id="prefEd"></div>
+  </div>
+  <div class="panel set"><h3>💾 I tuoi dati</h3>
+   <p class="hint" id="bkLead"></p>
+   <p class="hint" id="bkInfo"></p>
+   <div class="bkrow"><button class="btn sm" id="bkExp">⬇️ Esporta backup</button><button class="btn line sm" id="bkImp">⬆️ Importa backup</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div>
+  </div>
+  <p class="hint" style="text-align:center">Puoi aprire questa pagina in qualsiasi momento con ⚙️ in alto a destra.</p>
+ </section>
+ <section id="info" hidden>
+  <h2>ℹ️ Come funziona</h2>
+  <div class="rules"><ul>
+   <li>Per ogni categoria del pasto spunta <b>un solo alimento</b> e alterna le scelte nei giorni, per variare la dieta.</li>
+   <li id="xtraInfo" hidden></li>
+   <li id="listInfo" hidden>Le lettere come <span class="tag">A</span> o <span class="tag">C</span> indicano le liste di scelta del PDF originale.</li>
+   <li><b>Il tuo piano</b>: in ⚙️ Impostazioni → Piano alimentare carichi il PDF del tuo nutrizionista; l'AI lo trascrive e tu lo controlli prima di salvarlo. All'inizio vedi un piano di esempio.</li>
+   <li>Le ricette (oltre 22.000 combinazioni, quasi tutte per pranzo e cena) nascono dagli alimenti che hai spuntato: aggiungi solo spezie, erbe, aglio, limone o aceto.</li>
+   <li><b>Scambio dei giorni</b>: nel Piano scegli "Segui il piano di" per scambiare due giorni della settimana (es. lunedì con mercoledì), così la settimana resta completa. Nel Diario puoi indicare quale piano hai seguito in una data precisa.</li>
+   <li><b>Diario</b>: segna giorno per giorno cosa hai mangiato, anche fuori piano. <b>Calorie</b>: tabella delle kcal e convertitore tra alimenti.</li>
+   <li>Le calorie sono valori medi indicativi.</li>
+   <li><b>Grafica</b>: il pulsante 🌙/☀️ in alto a destra passa dal tema chiaro a quello scuro; colori, carattere e dimensioni si cambiano in Impostazioni, con ⚙️ in alto a destra.</li>
+   <li>Scelte, diario, lista della spesa e grafica vengono salvati su questo dispositivo. Se accedi con Google (⚙️ Impostazioni → Account) vengono salvati anche nel cloud e li ritrovi sugli altri dispositivi. In ogni caso puoi fare un backup.</li>
+   <li><b>Offline</b>: dopo la prima apertura il sito funziona anche senza connessione, per esempio al supermercato.</li>
+  </ul>
+  <p class="hint" id="credits"></p></div>
+  <h2>🔒 Privacy</h2>
+  <div class="rules"><ul>
+   <li>L'app è un progetto personale e gratuito, non un servizio medico: non sostituisce il parere del nutrizionista.</li>
+   <li>Senza accesso con Google tutto resta su questo dispositivo.</li>
+   <li>Se accedi con Google, piani, scelte, diario e spese sono salvati nel cloud (Google Firebase, progetto di Matteo Anedda). Le regole del database danno accesso solo al tuo account; come gestore del progetto Matteo potrebbe tecnicamente vederli, ma non li consulta e non li condivide.</li>
+   <li>Quando carichi un PDF o chiedi una stima delle calorie, il testo viene mandato a Google Gemini per l'elaborazione. Per chi è nell'Unione europea Google non lo usa per addestrare i suoi modelli.</li>
+   <li>Puoi esportare i tuoi dati in qualsiasi momento (⚙️ Impostazioni → I tuoi dati) e cancellare dal cloud dati e account (⚙️ Impostazioni → Account).</li>
+  </ul></div>
+ </section>
+</main>
+<nav class="tabs"><button class="tab" data-tab="piano"><i>📅</i>Piano</button><button class="tab" data-tab="diario"><i>📓</i>Diario</button><button class="tab" data-tab="spesa"><i>🛒</i>Spesa</button><button class="tab" data-tab="calorie"><i>🔥</i>Calorie</button><button class="tab" data-tab="info"><i>ℹ️</i>Info</button></nav>
+<dialog id="syncChoice"><div class="scbox"><h3>☁️ Dati già presenti</h3>
+ <p>Nel tuo account ci sono già dei dati, e ce ne sono anche su questo dispositivo. Quali vuoi tenere?</p>
+ <button class="btn" id="scCloud">Usa quelli del cloud</button>
+ <p class="hint">Consigliato se hai già usato l'app su un altro dispositivo. I dati di questo dispositivo vengono sostituiti.</p>
+ <button class="btn line" id="scDevice">Usa quelli di questo dispositivo</button>
+ <p class="hint">Sostituisce i dati nel cloud con quelli di qui; quelli presenti solo nel cloud restano.</p>
+ <p class="hint">Nel dubbio, fai prima un backup in ⚙️ Impostazioni.</p></div></dialog>
+<dialog id="pdfImp"><div class="pibox" id="piBody"></div></dialog>
+<dialog id="recipe">
+ <div class="rhead"><small id="rMeta"></small><h3 id="rTitle"></h3></div>
+ <div class="rbody"><h5>Ingredienti</h5><ul id="rIng"></ul><p class="hint" id="rAuto">Gli alimenti segnati "suggerito" non li hai ancora spuntati nel piano: sono gli stessi della lista della spesa. Se mangi altro, spuntalo nel piano.</p><h5>Procedimento</h5><ol id="rSteps"></ol></div>
+ <div class="ract"><button class="btn" id="rAgain">🔄 Un'altra idea</button><button class="btn ghost" id="rAI">✨ Chiedi all'AI</button><button class="btn ghost" id="rCopy">Copia</button><button class="btn line" id="rClose">Chiudi</button></div>
+</dialog>
+<div class="toast" id="toast"></div>
+<script type="module" src="js/app.js"></script>
+<script>if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
+</body>
+</html>
