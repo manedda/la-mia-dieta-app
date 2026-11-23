@@ -10,6 +10,15 @@ const PK='dietaApp.plans', FK='dietaApp.prefs', BK='dietaApp.boot';
 export const DEFAULT_PLAN_URL='data/piano-esempio.json', EXAMPLE_ID='esempio';
 /* versioni precedenti: il piano personale era incluso nell'app; ora diventa un piano dell'utente come gli altri */
 const LEGACY_PLAN='data/piano-uccheddu.json', LEGACY_PREFS='data/preferenze-matteo.json', LK='dietaApp.legacyPrefs';
+/* piani personali messi da parte in archivio (file non pubblicati: esistono solo aprendo l'app dal Mac, poi la sincronizzazione li porta altrove) */
+const SEED=['data/piano-uccheddu-2026-03.json'], SK='dietaApp.seeded', LOCAL=/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&!navigator.webdriver; /* le prove automatiche partono senza */
+async function seedPlans(st){if(!LOCAL)return;let done=read(SK)||[];
+ for(const u of SEED){if(done.includes(u))continue;
+  try{const plan=await getJSON(u);if(planErrors(plan).length)continue;
+   if(!st.list.some(r=>r.title===plan.title&&(r.plan||{}).validFrom===plan.validFrom)){const from=plan.validFrom||today(),id=newPlanId();
+    st.list.push({id,title:plan.title||'Piano',author:plan.author||'',added:today(),from,plan});
+    if(!calOf(st).some(e=>e.from===from))setStart(st,id,from);writePlans(st);}
+   done=[...done,u];localStorage.setItem(SK,JSON.stringify(done));}catch(e){/* file assente: niente da aggiungere */}}}
 const exampleRec=async()=>{const plan=await getJSON(DEFAULT_PLAN_URL);return{id:EXAMPLE_ID,title:plan.title||'Piano di esempio',author:plan.author||'',added:today(),from:today(),src:DEFAULT_PLAN_URL,plan};};
 export const isExample=r=>!!r&&r.src===DEFAULT_PLAN_URL;
 export const today=()=>{const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
@@ -78,6 +87,7 @@ export async function loadActivePlan(){
  /* versioni precedenti: niente calendario (il piano attivo parte dalla sua data di attivazione) e scelte messe da parte con i piani in archivio */
  if(!calOf(st).length){st.cal=[{from:rec.from||today(),plan:rec.id}];writePlans(st);}
  if(st.list.some(r=>r.state&&Object.keys(r.state).some(k=>k!=='prefs'))){st.list.forEach(r=>{if(r.state)r.state='prefs' in r.state?{prefs:r.state.prefs}:undefined;if(!r.state)delete r.state;});writePlans(st);}
+ await seedPlans(st);
  /* il piano in vigore oggi secondo il calendario (un piano programmato parte da solo) */
  const want=planAt(st,today());
  if(want!==st.active&&!new URLSearchParams(location.search).has('prefs')){switchTo(st,want);writePlans(st);rec=st.list.find(r=>r.id===st.active);}
