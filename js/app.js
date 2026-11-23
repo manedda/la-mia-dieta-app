@@ -914,13 +914,14 @@ function nameTypes(){if(_nt&&_nt.plan===PLAN)return _nt;const t=new Map(),lab={}
  const GEN={snack:'Snack',yogurtpro:'Yogurt proteici',yogurt:'Yogurt',formaggio:'Formaggi e latticini',fruttasecca:'Frutta secca',dolce:'Dolci'};
  const tl=Object.fromEntries(Object.entries(lab).map(([k,v])=>[k,Object.keys(v).length>1&&GEN[k]?GEN[k]:Object.entries(v).sort((x,y)=>y[1]-x[1])[0][0]]));
  return _nt={plan:PLAN,t,tl};}
-function shopGroups(all,every=all){const {t:NT,tl}=nameTypes(), G=new Map();
+let panAlts=[];
+function shopGroups(all,every=all){const {t:NT,tl}=nameTypes(), G=new Map();panAlts=[];
  const grp=(cat,ty)=>{const k=cat+'|'+ty;if(!G.has(k))G.set(k,{cat,t:ty,label:tl[ty]||'',items:[],alts:[]});return G.get(k);};
  all.forEach(i=>grp(i.cat,i.custom!=null?'_mine':NT.get(i.n)||i.t||'_').items.push(i));
  const seen=new Set(every.map(i=>i.n));
  shopIsos().map(iso=>({...dayOf(iso),iso})).forEach(d=>MEALS.forEach(([mk])=>(d.meals[mk]||[]).forEach((c,i)=>{
   if(c.free||c.opts.length<2)return;const cat=SHOP_CAT[c.t]||'Altro';
-  c.opts.forEach(o=>(o[3]||[[o[0],o[1],o[2]]]).forEach(b=>altSplit(shopName(b[0])).forEach(n=>{if(seen.has(n))return;seen.add(n);const bc=CAT_ORDER.includes(b[3]||cat)?(b[3]||cat):'Altro';grp(bc,NT.get(n)||c.t).alts.push(n);})));})));
+  c.opts.forEach(o=>(o[3]||[[o[0],o[1],o[2]]]).forEach(b=>altSplit(shopName(b[0])).forEach(n=>{if(seen.has(n)||S.hidden[n])return;seen.add(n);if(S.pantry&&S.pantry[n]){panAlts.push(n);return;}const bc=CAT_ORDER.includes(b[3]||cat)?(b[3]||cat):'Altro';grp(bc,NT.get(n)||c.t).alts.push(n);})));})));
  const by={};[...G.values()].forEach(g=>{g.alts.sort((x,y)=>x.localeCompare(y));(by[g.cat]=by[g.cat]||[]).push(g);});
  /* i gruppi con un solo prodotto e senza alternative vanno insieme in cima al reparto, senza titolo */
  Object.keys(by).forEach(c=>{const l=by[c],one=l.filter(g=>g.items.length+g.alts.length<2&&g.t!=='_mine'),rest=l.filter(g=>!one.includes(g)).sort((x,y)=>(x.t==='_mine')-(y.t==='_mine')||x.label.localeCompare(y.label));
@@ -945,7 +946,7 @@ function renderShop(){
  const sw=wkIsos(addDays(todayIso(),7*shopWk)), f=x=>dateOf(x).toLocaleDateString('it-IT',{day:'numeric',month:'short'});
  $('#shopWkLbl').textContent=(shopWk===0?'Questa settimana':shopWk===1?'Settimana prossima':shopWk===-1?'Settimana scorsa':'Settimana')+` · ${f(sw[0])} – ${f(sw[6])}`;
  $('#shopDays').innerHTML=sw.map(iso=>{const k=wdOf(iso).k;return`<button class="chip ${S.shopDays.includes(k)?'on':''}" data-sday="${esc(k)}"><span>${esc(wdOf(iso).n.slice(0,3))}</span><small>${dateOf(iso).getDate()}</small></button>`;}).join('');
- const all=shopItems(), items=all.filter(i=>!inPantry(i)), pan=all.filter(inPantry), GB=shopGroups(items,all);
+ const all=shopItems(), items=all.filter(i=>!inPantry(i)), GB=shopGroups(items,all), pan=all.filter(inPantry).concat(panAlts.map(n=>({key:n,n})));
  const ok=bought, done=items.filter(ok).length, extra=Object.values(GB).flat().reduce((n,g)=>n+g.alts.filter(altB).length,0);
  if(!$('#catEdit').hidden)renderCatEdit();
  $('#sDate').value=shopDate;$('#sToday').hidden=shopDate===isoOf(new Date());renderShopHist();
@@ -957,7 +958,7 @@ function renderShop(){
  $('#shopList').innerHTML=catOrd().map(cat=>{
   const gs=GB[cat]||[];if(!gs.length)return'';
   const row=i=>`<label class="item ${ok(i)?'done':''}"><input type="checkbox" data-check="${esc(i.key)}" ${bought(i)?'checked':''}><span class="nm">${esc(i.n)}<small>${esc(srcFmt(i.src))}${!ok(i)&&lastBuy(i)?` · ultima volta ${esc(sdFmt(lastBuy(i)))}`:''}</small></span>${i.custom!=null?'':`<button class="pan" data-pantry="${esc(i.key)}" title="Ce l'ho già in dispensa" aria-label="Ce l'ho già">🏠</button>`}<button class="x" data-hide="${esc(i.key)}" aria-label="Rimuovi">×</button></label>`;
-  return`<section class="cat"><h4>${CAT_ICON[cat]} ${cat}</h4>${gs.map(g=>`<div class="sgrp">${g.label?`<h5>${esc(g.t==='_mine'?'Aggiunti da te':g.label)}</h5>`:''}${[...g.items].sort((a,b)=>ok(a)-ok(b)||a.n.localeCompare(b.n)).map(row).join('')}${g.alts.map(n=>`<label class="item alt ${altB(n)?'done':''}"><input type="checkbox" data-check="alt|${esc(n)}" data-acat="${esc(cat)}" ${altB(n)?'checked':''}><span class="nm">${esc(n)}<small>in alternativa</small></span></label>`).join('')}</div>`).join('')}</section>`;
+  return`<section class="cat"><h4>${CAT_ICON[cat]} ${cat}</h4>${gs.map(g=>`<div class="sgrp">${g.label?`<h5>${esc(g.t==='_mine'?'Aggiunti da te':g.label)}</h5>`:''}${[...g.items].sort((a,b)=>ok(a)-ok(b)||a.n.localeCompare(b.n)).map(row).join('')}${g.alts.map(n=>`<label class="item alt ${altB(n)?'done':''}"><input type="checkbox" data-check="alt|${esc(n)}" data-acat="${esc(cat)}" ${altB(n)?'checked':''}><span class="nm">${esc(n)}<small>in alternativa${!altB(n)&&lastBuy({n})?` · ultima volta ${esc(sdFmt(lastBuy({n})))}`:''}</small></span><button class="pan" data-pantry="${esc(n)}" title="Ce l'ho già in dispensa" aria-label="Ce l'ho già">🏠</button><button class="x" data-hide="${esc(n)}" aria-label="Rimuovi">×</button></label>`).join('')}</div>`).join('')}</section>`;
  }).join('')+(pan.length?`<details class="pantry card"><summary>🏠 In dispensa (${pan.length}): non li devi comprare</summary>${pan.sort((a,b)=>a.n.localeCompare(b.n)).map(i=>`<div class="item"><span class="nm">${esc(i.n)}<small>Ce l'hai dal ${dateOf(S.pantry[i.key]).toLocaleDateString('it-IT',{day:'numeric',month:'short'})}</small></span><button class="btn line sm" data-pantry="${esc(i.key)}">Finito, rimetti in lista</button></div>`).join('')}</details>`:'');
 }
 function shopText(){const all=shopItems(), items=all.filter(i=>!inPantry(i)), GB=shopGroups(items,all);return'🛒 Lista della spesa\n'+catOrd().map(c=>{const gs=GB[c]||[];const L=gs.flatMap(g=>(g.label?[`· ${g.t==='_mine'?'Aggiunti da te':g.label}`]:[]).concat(g.items.filter(i=>!bought(i)).map(i=>`☐ ${i.n}`)).concat(g.alts.filter(n=>!altB(n)).map(n=>`☐ ${n} (in alternativa)`)));return L.some(x=>x.startsWith('☐')||x.startsWith('   '))?`\n${c}\n`+L.join('\n'):'';}).join('\n');}
