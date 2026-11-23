@@ -304,8 +304,13 @@ const plannedOf=iso=>{const x=S.dplanned[iso];return x&&x.plan!==ctxAt(iso).id?x
 const fshort=x=>dateOf(x).toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'});
 const perRange=p=>p?(p.to===p.from?`il ${fshort(p.from)}`:p.to?`dal ${fshort(p.from)} al ${fshort(p.to)}`:`dal ${fshort(p.from)}`):'';
 function perNote(sel,iso){const el=$(sel);if(!el)return;const c=ctxAt(iso),on=c.id!==PLAN_REC.id;el.hidden=!on;if(!on)return;const p=periodAt(iso);
- el.innerHTML=`📋 Piano di questo giorno: <b>${esc(c.rec.title)}</b> · ${perRange(p)}${p&&p.from>todayIso()?' · partirà da solo':''}`;}
-const planTitle=id=>{const r=PLANS.list.find(x=>x.id===id);return r?r.title:'un piano eliminato';};
+ el.innerHTML=`📋 Piano di questo giorno: <b>${esc(nameOf(c.rec))}</b> · ${perRange(p)}${p&&p.from>todayIso()?' · partirà da solo':''}`;}
+/* nome mostrato: «Piano alimentare» + mese e anno di emissione (inizio di validità del piano, altrimenti il suo primo giorno in calendario) */
+const MESI=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+function nameOf(r){if(!r)return'';if(isExample(r))return r.title;
+ const c=(PLANS.cal||[]).filter(e=>e.plan===r.id).map(e=>e.from).sort()[0], d=(r.plan&&r.plan.validFrom)||c||r.from||r.added;
+ return /^\d{4}-\d\d/.test(d||'')?`Piano alimentare ${MESI[+d.slice(5,7)-1]} ${d.slice(0,4)}`:r.title;}
+const planTitle=id=>{const r=PLANS.list.find(x=>x.id===id);return r?nameOf(r):'un piano eliminato';};
 function planEntry(d,mk,ci,j,q){const c=d.meals[mk][ci],o=c.opts[j],base=optK(o);q=q==null||q===''?o[1]:+q;return{m:mk,n:o[0],q,u:o[2],k:base==null?0:base*q/o[1]};}
 
 /* ====== CALORIE E CONVERSIONI ====== */
@@ -673,25 +678,29 @@ function renderWeek(){
 const fdate=iso=>iso?dateOf(iso).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'}):'';
 function renderPlans(){
  const a=PLAN_REC, t=todayIso(), cur=periodAt(t), nextP=PERIODS.find(e=>e.from>t), vt=PLAN.validTo;
- const tit=id=>{const r=PLANS.list.find(x=>x.id===id);return r?r.title:'?';};
- $('#planCur').innerHTML=`<div class="plancur">In uso oggi: <b>${esc(a.title)}</b>${a.author?` · ${esc(a.author)}`:''}<br><small>${DAYS.length} giorni · ${cur?perRange(cur):''}${isExample(a)?' · piano di esempio':''}</small>${vt&&!nextP?`<small class="pvt">Il piano indicava fino al ${fdate(vt)}: quando ricevi il nuovo, caricalo.</small>`:''}<div class="acts"><button class="btn line sm" data-cedit="${cur?cur.from:''}">📅 Cambia la data di inizio</button><button class="btn line sm" data-pview="${esc(a.id)}">👁 Sfoglia</button></div></div>${PLAN.notes?`<details class="pnotes"><summary>📝 Note del nutrizionista</summary><p>${esc(PLAN.notes)}</p></details>`:''}`;
+ const tit=id=>{const r=PLANS.list.find(x=>x.id===id);return r?nameOf(r):'?';};
+ $('#planCur').innerHTML=`<div class="plancur">In uso oggi: <b>${esc(nameOf(a))}</b>${a.author?` · ${esc(a.author)}`:''}<br><small>${DAYS.length} giorni · ${cur?perRange(cur):''}${isExample(a)?' · piano di esempio':''}</small>${vt&&!nextP?`<small class="pvt">Il piano indicava fino al ${fdate(vt)}: quando ricevi il nuovo, caricalo.</small>`:''}<div class="acts"><button class="btn line sm" data-cedit="${cur?cur.from:''}">📅 Cambia la data di inizio</button><button class="btn line sm" data-pview="${esc(a.id)}">👁 Sfoglia</button></div></div>${PLAN.notes?`<details class="pnotes"><summary>📝 Note del nutrizionista</summary><p>${esc(PLAN.notes)}</p></details>`:''}`;
  const cal=PERIODS.slice().reverse().map(e=>{const now=e.from<=t&&(!e.to||e.to>=t),fut=e.from>t;
   return`<div class="planrow calrow${now?' now':''}"><span>${esc(tit(e.plan))}<small>${perRange(e)}${now?' · in uso':fut?' · programmato':''}</small></span><span class="acts"><button class="btn line sm" data-cedit="${e.from}" aria-label="Cambia la data di inizio">📅</button>${PERIODS.length>1?`<button class="btn line sm" data-cdel="${e.from}" aria-label="Togli dal calendario">✕</button>`:''}</span></div>`;}).join('');
  const used=id=>PERIODS.filter(e=>e.plan===id);
  const arch=PLANS.list.slice().sort((x,y)=>{const ux=used(x.id),uy=used(y.id),kx=ux.length?ux[ux.length-1].from:x.added,ky=uy.length?uy[uy.length-1].from:y.added;return ky.localeCompare(kx);}).map(x=>{const u=used(x.id);
-  return`<div class="planrow"><span>${esc(x.title)}${x.author?` · ${esc(x.author)}`:''}<small>${u.length?u.map(perRange).join('; '):'caricato il '+fdate(x.added)+', non è nel calendario'}</small></span><span class="acts"><button class="btn line sm" data-pview="${esc(x.id)}">👁 Sfoglia</button>${x.id===a.id&&!nextP?'':`<button class="btn ghost sm" data-pres="${esc(x.id)}">▶ Riprendi dal…</button>`}${x.id===a.id?'':`<button class="btn line sm" data-pdel="${esc(x.id)}" aria-label="Elimina">🗑️</button>`}</span></div>`;}).join('');
+  return`<div class="planrow"><span>${esc(nameOf(x))}${x.author?` · ${esc(x.author)}`:''}<small>${u.length?u.map(perRange).join('; '):'caricato il '+fdate(x.added)+', non è nel calendario'}</small></span><span class="acts"><button class="btn line sm" data-pview="${esc(x.id)}">👁 Sfoglia</button>${x.id===a.id&&!nextP?'':`<button class="btn ghost sm" data-pres="${esc(x.id)}">▶ Riprendi dal… al…</button>`}${x.id===a.id?'':`<button class="btn line sm" data-pdel="${esc(x.id)}" aria-label="Elimina">🗑️</button>`}</span></div>`;}).join('');
  $('#planList').innerHTML=`<h4 class="sub">Calendario</h4><p class="hint">Ogni piano vale dalla sua data di inizio fino al giorno prima del successivo. Piano, Diario e Spesa usano da soli il piano di quel giorno.</p>${cal}<h4 class="sub">Archivio</h4>${arch}`;
 }
 /* finestra per la data di inizio: restituisce la data scelta o null */
-function askStart({title,plan,def,old}){return new Promise(res=>{const dl=$('#calDlg'),inp=$('#cdDate');
- $('#cdT').textContent=title;inp.value=def||todayIso();
+function askStart({title,plan,def,old,range}){return new Promise(res=>{const dl=$('#calDlg'),inp=$('#cdDate'),to=$('#cdTo');
+ $('#cdT').textContent=title;inp.value=def||todayIso();to.value='';$('#cdToRow').hidden=!range;
+ $('#cdHint').textContent=range?'La data di fine è facoltativa: senza, il piano vale finché non ne inizia un altro. Con la fine, dal giorno dopo torna il piano che c\'era.':'Non serve una data di fine: il piano vale finché non ne inizia un altro.';
  const info=()=>{const d=inp.value;if(!d){$('#cdInfo').textContent='';return;}
+  if(range&&to.value){if(to.value<d){$('#cdInfo').textContent='La fine deve venire dopo l\'inizio.';return;}const aft=planAt(PLANS,addDays(to.value,1));
+   $('#cdInfo').textContent=`Dal ${fshort(d)} al ${fshort(to.value)} vale «${planTitle(plan)}»`+(aft!==plan?`, poi dal ${fshort(addDays(to.value,1))} torna «${planTitle(aft)}».`:'.');return;}
   const nx=PERIODS.find(e=>e.from>d&&e.from!==old), same=PERIODS.find(e=>e.from===d&&e.from!==old), prev=planAt(PLANS,addDays(d,-1)), first=PERIODS.length&&PERIODS[0].from<d;
-  $('#cdInfo').textContent=`Dal ${fshort(d)}${nx?` al ${fshort(addDays(nx.from,-1))}`:' in poi'} vale «${(PLANS.list.find(r=>r.id===plan)||{}).title||''}».`+(same?` Sostituisce l'inizio di «${planTitle(same.plan)}» di quel giorno.`:'')+(first&&prev!==plan?` «${planTitle(prev)}» si ferma il ${fshort(addDays(d,-1))}.`:'');};
- info();inp.oninput=info;
+  $('#cdInfo').textContent=`Dal ${fshort(d)}${nx?` al ${fshort(addDays(nx.from,-1))}`:' in poi'} vale «${planTitle(plan)}».`+(same?` Sostituisce l'inizio di «${planTitle(same.plan)}» di quel giorno.`:'')+(first&&prev!==plan?` «${planTitle(prev)}» si ferma il ${fshort(addDays(d,-1))}.`:'');};
+ info();inp.oninput=info;to.oninput=info;
  dl.onclick=e=>{const b=e.target.closest('button');if(!b)return;
   if(b.dataset.cdq!=null){inp.value=addDays(todayIso(),+b.dataset.cdq);info();return;}
-  if(b.id==='cdOk'){if(!/^\d{4}-\d\d-\d\d$/.test(inp.value)){inp.focus();return;}dl.close();res(inp.value);}
+  if(b.id==='cdToX'){to.value='';info();return;}
+  if(b.id==='cdOk'){if(!/^\d{4}-\d\d-\d\d$/.test(inp.value)){inp.focus();return;}if(range&&to.value&&to.value<inp.value){to.focus();return;}dl.close();res(range?{from:inp.value,to:to.value||null}:inp.value);}
   if(b.id==='cdNo'){dl.close();res(null);}};
  dl.oncancel=()=>res(null);
  dl.showModal();});}
@@ -700,8 +709,14 @@ function applyCal(st,msg){try{writePlans(st);}catch(e){alert('Spazio esaurito ne
  Object.keys(S.diary).forEach(iso=>{if(!S.dplanned[iso])snapDay(iso);});save();
  if(msg)sessionStorage.setItem('dietaApp.flash',msg);reloadNoPrefs();}
 async function resumePlan(id){const x=PLANS.list.find(r=>r.id===id);if(!x)return;
- const d=await askStart({title:`Da quando usare «${x.title}»?`,plan:id,def:todayIso()});if(!d)return;
- applyCal(setStart(JSON.parse(JSON.stringify(readPlans()||PLANS)),id,d),`«${x.title}» in calendario dal ${fshort(d)}`);}
+ const r=await askStart({title:`Quando usare «${nameOf(x)}»?`,plan:id,def:todayIso(),range:true});if(!r)return;
+ const st=JSON.parse(JSON.stringify(readPlans()||PLANS)),{from,to}=r;
+ if(!to){applyCal(setStart(st,id,from),`«${nameOf(x)}» in calendario dal ${fshort(from)}`);return;}
+ /* periodo chiuso: il piano che valeva il giorno dopo la fine riparte da lì; gli inizi dentro il periodo spariscono */
+ const nx=addDays(to,1),aft=planAt(st,nx);
+ st.cal=(st.cal||[]).filter(e=>!(e.from>from&&e.from<=to));setStart(st,id,from);
+ if(aft!==id&&!st.cal.some(e=>e.from===nx))setStart(st,aft,nx);
+ applyCal(st,`«${nameOf(x)}» in calendario dal ${fshort(from)} al ${fshort(to)}`);}
 /* compatibilità (prove): usa un piano da oggi */
 function activatePlan(id){applyCal(setStart(JSON.parse(JSON.stringify(readPlans()||PLANS)),id,todayIso()));}
 async function editStart(from){const e=PERIODS.find(x=>x.from===from);if(!e)return;
@@ -727,7 +742,7 @@ function freeAct(b){const w=b.closest('[data-fiso]'),iso=w.dataset.fiso,mk=w.dat
 /* ====== SFOGLIA: un piano dell'archivio, solo da guardare ====== */
 let pvId=null,pvDay=0;
 function renderPV(){const c=ctxOf(pvId),r=c.rec,D=c.DAYS,d=D[pvDay]||D[0],u=PERIODS.filter(e=>e.plan===r.id);
- $('#pvBody').innerHTML=`<h3>👁 ${esc(r.title)}</h3><p class="hint">Solo da guardare${u.length?' · '+u.map(perRange).join('; '):''}${r.id===PLAN_REC.id?' · in uso oggi':''}.</p>
+ $('#pvBody').innerHTML=`<h3>👁 ${esc(nameOf(r))}</h3><p class="hint">Solo da guardare${u.length?' · '+u.map(perRange).join('; '):''}${r.id===PLAN_REC.id?' · in uso oggi':''}.</p>
   <nav class="chips">${D.map((x,i)=>`<button class="chip ${x===d?'on':''}" data-pvd="${i}">${esc(x.n.slice(0,3))}</button>`).join('')}</nav>
   ${d.idea?`<p class="idea"><span>💡</span> ${esc(d.idea)}</p>`:''}
   ${MEALS.map(([mk,mn,ic])=>{const cs=d.meals[mk]||[];if(!cs.length)return'';
@@ -743,13 +758,13 @@ function addPlan(j,title){const st=readPlans()||PLANS, id=newPlanId();
  const vf=typeof j.validFrom==='string'&&/^\d{4}-\d\d-\d\d$/.test(j.validFrom)?j.validFrom:null;
  askStart({title:`Piano «${title}» caricato (${j.days.length} giorni). Da quando inizia?`,plan:id,def:vf||todayIso()}).then(d=>{
   if(d)applyCal(setStart(JSON.parse(JSON.stringify(readPlans()||PLANS)),id,d),`«${title}» in calendario dal ${fshort(d)}`);
-  else{renderPlans();toast('Piano in archivio: «Riprendi dal…» per metterlo in calendario');}});
+  else{renderPlans();toast('Piano in archivio: «Riprendi dal… al…» per metterlo in calendario');}});
  return true;}
 function exportPlan(){const name=`piano-${String(PLAN_REC.title||'dieta').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}.json`;
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(PLAN,null,1)],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
 function deletePlan(id){const st=JSON.parse(JSON.stringify(readPlans()||PLANS)), x=st.list.find(y=>y.id===id);if(!x||id===st.active)return;
  const n=PERIODS.filter(e=>e.plan===id).length;
- if(!confirm(`Eliminare il piano «${x.title}» dall'archivio?${n?' Esce anche dal calendario: quei giorni useranno il piano precedente.':''} Il diario resta com'è.`))return;
+ if(!confirm(`Eliminare il piano «${nameOf(x)}» dall'archivio?${n?' Esce anche dal calendario: quei giorni useranno il piano precedente.':''} Il diario resta com'è.`))return;
  st.list=st.list.filter(y=>y.id!==id);st.cal=calOf(st);applyCal(st,'Piano eliminato');}
 
 /* ====== IMPORT DA PDF (Gemini) ======
