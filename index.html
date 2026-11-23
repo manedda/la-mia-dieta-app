@@ -13,8 +13,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>La mia dieta</title>
 <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
-<link rel="stylesheet" href="css/app.css">
-<script src="js/theme-head.js"></script>
+<link rel="stylesheet" href="css/app.css?v=32">
+<script src="js/theme-head.js?v=32"></script>
 </head>
 <body>
 <div class="top"><div class="wrap">
@@ -167,7 +167,10 @@
  <div class="ract"><button class="btn" id="rAgain">🔄 Un'altra idea</button><button class="btn ghost" id="rAI">✨ Chiedi all'AI</button><button class="btn ghost" id="rCopy">Copia</button><button class="btn line" id="rClose">Chiudi</button></div>
 </dialog>
 <div class="toast" id="toast"></div>
-<script type="module" src="js/app.js"></script>
-<script>if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
+<script type="module" src="js/app.js?v=32"></script>
+<script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){navigator.serviceWorker.register('sw.js').catch(()=>{});
+ /* versione nuova appena installata: ricarico una volta, così non resta un misto di file vecchi e nuovi */
+ if(navigator.serviceWorker.controller)navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!sessionStorage.getItem('dietaApp.swr')){sessionStorage.setItem('dietaApp.swr','1');location.reload();}});
+ addEventListener('load',()=>setTimeout(()=>sessionStorage.removeItem('dietaApp.swr'),5000));}</script>
 </body>
 </html>
