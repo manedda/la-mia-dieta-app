@@ -392,3 +392,12 @@ html[data-theme=dark] #shopDays .chip.on{color:#0f1411}
 #scMsg{min-height:2.6em}
 #cFromQ{margin-bottom:6px}
 #bcSave{margin-top:10px}.lnk.in{display:inline;padding:0;font-size:inherit}.bsaved{margin:6px 0 0}
+
+/* calendario dei piani */
+.pernote{margin:8px 0 0;padding:7px 11px;border-radius:12px;background:var(--acc2);font-size:13.5px}.pernote b{color:var(--acc)}
+#dPer{margin:0 0 10px}
+.plancur .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.plancur .pvt{display:block;margin-top:4px;color:var(--mute)}
+.calrow.now>span:first-child{font-weight:600}
+.cdbox,.pvbox{padding:16px 18px}.cdbox h3,.pvbox h3{margin:0 0 10px;font-size:17px}
+.cdq{align-items:center}.cdq input[type=date]{font:inherit;padding:6px 8px;border-radius:10px;border:1px solid var(--line)}
+.pvbox{max-height:85vh;overflow:auto}.pvbox .meal{margin:10px 0}.pvrow{padding:6px 0;border-top:1px solid var(--line);font-size:14px}.pvrow small{display:block;color:var(--mute);font-size:12.5px}.pvrow i{color:var(--mute);font-style:normal;font-size:12.5px}

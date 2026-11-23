@@ -2,13 +2,16 @@
    Dentro l'app ogni opzione resta un array [nome, quantità, unità, acquisti?] e ogni componente {t, label, opts, ...} */
 import * as CERCA from'./cerca.js';
 import * as MARCA from'./marca.js';
-import{loadActivePlan,loadPrefs,isExample,planErrors,readPlans,writePlans,newPlanId,writePrefs,readLocalPrefs,clearPrefs,today,bootDone}from'./store.js';
+import{loadActivePlan,loadPrefs,isExample,planErrors,readPlans,writePlans,newPlanId,writePrefs,readLocalPrefs,clearPrefs,today,bootDone,planAt,periods,setStart,calOf}from'./store.js';
 const {st:PLANS,rec:PLAN_REC}=await loadActivePlan(), {prefs:PREFS,local:PREFS_LOCAL}=await loadPrefs();
 const PLAN=PLAN_REC.plan;
 const fromJSON=o=>{const a=[o.name,o.qty,o.unit];if(o.buy)a.push(o.buy.map(b=>b.cat?[b.name,b.qty,b.unit,b.cat]:[b.name,b.qty,b.unit]));return a;};
-const DAYS=PLAN.days.map(d=>({k:String(d.key),n:d.name,idea:d.idea||'',meals:Object.fromEntries(Object.entries(d.meals).map(([mk,cs])=>[mk,cs.map(({type,label,options,...x})=>({t:type,label,opts:options.map(fromJSON),...x}))]))}));
+const buildDays=P=>P.days.map(d=>({k:String(d.key),n:d.name,idea:d.idea||'',meals:Object.fromEntries(Object.entries(d.meals).map(([mk,cs])=>[mk,cs.map(({type,label,options,...x})=>({t:type,label,opts:options.map(fromJSON),...x}))]))}));
+const DAYS=buildDays(PLAN);
+/* pasti: quelli del piano in uso, più eventuali pasti che esistono solo nei piani in archivio */
 const MEALS=PLAN.meals.map(m=>[m.key,m.name,m.icon]);
-const SHOP_CAT={verdure:'Frutta e verdura',frutta:'Frutta e verdura',bosco:'Frutta e verdura',patate:'Frutta e verdura',minestra:'Frutta e verdura',
+PLANS.list.forEach(r=>((r.plan||{}).meals||[]).forEach(m=>{if(!MEALS.some(x=>x[0]===m.key))MEALS.push([m.key,m.name,m.icon]);}));
+const SHOP_CAT={verdure:'Frutta e verdura',frutta:'Frutta e verdura',fruttaoleosa:'Frutta e verdura',insalatone:'Carne e salumi',bosco:'Frutta e verdura',patate:'Frutta e verdura',minestra:'Frutta e verdura',
  carne:'Carne e salumi',salume:'Carne e salumi',pesce:'Pesce',pescecons:'Pesce',latte:'Latte, yogurt e uova',yogurt:'Latte, yogurt e uova',yogurtpro:'Latte, yogurt e uova',uova:'Latte, yogurt e uova',
  formaggio:'Formaggi e tofu',tofu:'Formaggi e tofu',pane:'Pane e prodotti da forno',piadina:'Pane e prodotti da forno',crackers:'Pane e prodotti da forno',
  cerealicol:'Colazione e dolci',creme:'Colazione e dolci',marmellata:'Colazione e dolci',primo:'Pasta, riso e legumi',legumi:'Pasta, riso e legumi',piattounico:'Pasta, riso e legumi',
@@ -20,9 +23,6 @@ const CAT_ICON={'Frutta e verdura':'🥬','Carne e salumi':'🥩','Pesce':'🐟'
 const LS='dietaApp.v1';
 const S=Object.assign({picks:{},shopDays:[],checked:{},hidden:{},custom:[],tab:'piano',day:null,diary:{},customFoods:[],brandFoods:[],conv:null,swap:{},dplan:{},ui:{},shopLog:{}},JSON.parse(localStorage.getItem(LS)||'{}'));
 const save=()=>{if(window.dietaFrozen)return;localStorage.setItem(LS,JSON.stringify(S));window.dispatchEvent(new Event('dieta:changed'));};
-/* scelte che dipendono dal piano: quando cambi piano vengono messe da parte con il piano vecchio e riprese se torni a usarlo */
-const PLAN_KEYS=['picks','swap','dplan','checked','hidden','shopDays','day'];
-const PLAN_DEF=()=>({picks:{},swap:{},dplan:{},checked:{},hidden:{},shopDays:[],day:null});
 S.dplanned=S.dplanned||{};
 S.pantry=S.pantry||{};S.shopSel=S.shopSel||{};
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -104,26 +104,45 @@ const perE=e=>Array.isArray(e.k)?`${e.k[0]} kcal / ${unitFmt(1,e.k[1])}`:`${e.k}
 /* ====== ALTERNATIVE FISSE A COLAZIONE (preferenze: breakfastExtras), con quantità a parità di kcal medie ====== */
 const XTRA=PREFS.breakfastExtras||[];
 XTRA.forEach(x=>{if(x.kcal100!=null)KCAL[x.name]=x.kcal100;});
-/* kcal scritte nel piano (facoltative): valgono più della tabella interna */
-PLAN.days.forEach(d=>Object.values(d.meals).forEach(cs=>cs.forEach(c=>c.options.forEach(o=>{if(o.kcal100!=null)KCAL[o.name]=o.kcal100;else if(o.kcalUnit!=null)KCAL[o.name]=[o.kcalUnit,o.unit];}))));
+/* kcal scritte nel piano (facoltative): valgono più della tabella interna; quelle dei piani non in uso non cambiano quelle del piano in uso */
+const planKcal=(P,over)=>P.days.forEach(d=>Object.values(d.meals).forEach(cs=>cs.forEach(c=>c.options.forEach(o=>{if(!over&&KCAL[o.name]!=null)return;if(o.kcal100!=null)KCAL[o.name]=o.kcal100;else if(o.kcalUnit!=null)KCAL[o.name]=[o.kcalUnit,o.unit];}))));
+planKcal(PLAN,true);
 const optK=o=>kcalOf(o[0],o[1],o[2],o[3]);
 const avgK=c=>{const ks=c.opts.map(optK).filter(k=>k!=null);return ks.reduce((a,b)=>a+b,0)/ks.length;};
 const round=(x,s)=>Math.max(s,Math.round(x/s)*s);
-DAYS.forEach(d=>{
- const col=d.meals.col||[];
- XTRA.forEach(x=>{
-  if(x.skipIfMealHas&&col.some(c=>c.t===x.skipIfMealHas))return;
-  const c=x.addTo.map(t=>col.find(c=>c.t===t)).find(Boolean), per100=typeof KCAL[x.name]==='number'?KCAL[x.name]:null;
-  if(!c||!per100)return;
-  const q=round(avgK(c)/per100*100,x.round||5);
-  if(c.detail){c.odet=Object.fromEntries(c.opts.map(o=>[o[0],c.detail]));c.detail=null;}
-  const u=x.kcalBase==='ml'?'ml':'g';c.opts.push([x.name,q,u,[[x.name,q,u,x.cat||'Altro']]]);c.label+=x.labelSuffix||'';
- });
-});
 /* tipo "effettivo" di un'opzione (serve alle ricette quando scegli un'alternativa fissa al posto di altro) */
-const XT=Object.fromEntries(XTRA.filter(x=>x.recipeType).map(x=>[x.name,x.recipeType]));
-const xShort=n=>(XTRA.find(x=>x.name===n)||{}).short||n;
+const XT={},XALL=[];
+function addXtra(days,xtra){
+ days.forEach(d=>{
+  const col=d.meals.col||[];
+  xtra.forEach(x=>{
+   if(x.skipIfMealHas&&col.some(c=>c.t===x.skipIfMealHas))return;
+   const c=x.addTo.map(t=>col.find(c=>c.t===t)).find(Boolean), per100=typeof KCAL[x.name]==='number'?KCAL[x.name]:null;
+   if(!c||!per100)return;
+   const q=round(avgK(c)/per100*100,x.round||5);
+   if(c.detail){c.odet=Object.fromEntries(c.opts.map(o=>[o[0],c.detail]));c.detail=null;}
+   const u=x.kcalBase==='ml'?'ml':'g';c.opts.push([x.name,q,u,[[x.name,q,u,x.cat||'Altro']]]);c.label+=x.labelSuffix||'';
+  });
+ });
+ xtra.forEach(x=>{XALL.push(x);if(x.recipeType&&!XT[x.name])XT[x.name]=x.recipeType;});
+}
+addXtra(DAYS,XTRA);
+const xShort=n=>(XALL.find(x=>x.name===n)||{}).short||n;
 const effT=(c,o)=>XT[o[0]]&&c.t!==XT[o[0]]?XT[o[0]]:c.t;
+
+/* ====== PIANO IN VIGORE PER DATA (calendario dei piani) ======
+   Ogni data usa il piano iniziato per ultimo entro quel giorno, con le preferenze che quel piano aveva l'ultima volta */
+const shopP=P=>({FIX:(P.shopping||{}).fixed||{},ROT:(P.shopping||{}).rotate||{}});
+const CTX={[PLAN_REC.id]:{id:PLAN_REC.id,rec:PLAN_REC,plan:PLAN,DAYS,XTRA,...shopP(PREFS)}};
+function ctxOf(id){if(CTX[id])return CTX[id];const rec=PLANS.list.find(r=>r.id===id);if(!rec)return CTX[PLAN_REC.id];
+ const pr=(rec.state&&rec.state.prefs)||PREFS, xtra=pr.breakfastExtras||[], days=buildDays(rec.plan);
+ xtra.forEach(x=>{if(x.kcal100!=null&&KCAL[x.name]==null)KCAL[x.name]=x.kcal100;});planKcal(rec.plan,false);addXtra(days,xtra);
+ return CTX[id]={id,rec,plan:rec.plan,DAYS:days,XTRA:xtra,...shopP(pr)};}
+const _pAt={};
+const planIdAt=iso=>_pAt[iso]||(_pAt[iso]=planAt(PLANS,iso));
+const ctxAt=iso=>ctxOf(planIdAt(iso));
+const PERIODS=periods(PLANS);
+const periodAt=iso=>{let p=null;PERIODS.forEach(e=>{if(e.from<=iso)p=e;});return p||PERIODS[0]||null;};
 
 /* ====== DATE ====== */
 const isoOf=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -133,16 +152,16 @@ const longDate=d=>cap(d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric'
 const dayIdxOf=d=>(d.getDay()+6)%7;
 /* ====== PIANO SEGUITO: S.dplan = {data: giorno del piano}; S.swap (versioni precedenti, per giorno della settimana) viene convertito qui sotto ====== */
 const planK=k=>S.swap[k]||k;
-const wdOf=iso=>DAYS[dayIdxOf(dateOf(iso))];
+const wdOf=iso=>ctxAt(iso).DAYS[dayIdxOf(dateOf(iso))];
 const dPlanK=iso=>S.dplan[iso]||planK(wdOf(iso).k);
-const dPlan=()=>DAYS.find(x=>x.k===dPlanK(diaryDate));
-const del=k=>(k==='dom'?'della ':'del ')+DAYS.find(x=>x.k===k).n.toLowerCase();
+const dPlan=()=>dayOf(diaryDate);
+const del=k=>(k==='dom'?'della ':'del ')+(DAYS.find(x=>x.k===k)||{n:k}).n.toLowerCase();
 /* ====== GIORNI PER DATA: le scelte valgono per una data precisa (chiave "AAAA-MM-GG|pasto|n"); il piano è la settimana tipo ====== */
 const todayIso=()=>isoOf(new Date());
 const addDays=(iso,n)=>{const t=dateOf(iso);t.setDate(t.getDate()+n);return isoOf(t);};
 const wkStart=iso=>addDays(iso,-dayIdxOf(dateOf(iso)));
 const wkIsos=iso=>{const s=wkStart(iso);return[0,1,2,3,4,5,6].map(i=>addDays(s,i));};
-const dayOf=iso=>DAYS.find(x=>x.k===dPlanK(iso));
+const dayOf=iso=>{const D=ctxAt(iso).DAYS;return D.find(x=>x.k===dPlanK(iso))||D[dayIdxOf(dateOf(iso))];};
 const isIso=k=>/^\d{4}-\d\d-\d\d$/.test(k);
 /* versioni precedenti: scelte e scambi per giorno della settimana -> valgono per questa settimana e la prossima */
 {const ws=wkStart(todayIso()), dates=[...Array(14)].map((_,i)=>addDays(ws,i));
@@ -156,7 +175,7 @@ const isIso=k=>/^\d{4}-\d\d-\d\d$/.test(k);
 if(S.autoDay){const a=S.autoDay;if(S.diary[a])S.diary[a]=S.diary[a].filter(e=>!e.pl);delete S.autoDay;}
 Object.keys(S.diary).forEach(iso=>{S.diary[iso]=(S.diary[iso]||[]).filter(e=>!e.x);if(!S.diary[iso].length)delete S.diary[iso];});
 S.day=todayIso();
-const swapOpts=(sel,own)=>DAYS.map(d=>`<option value="${esc(d.k)}" ${d.k===sel?'selected':''}>${esc(d.n)}${d.k===own?' (il suo)':''}</option>`).join('');
+const swapOpts=(sel,own,iso)=>ctxAt(iso).DAYS.map(d=>`<option value="${esc(d.k)}" ${d.k===sel?'selected':''}>${esc(d.n)}${d.k===own?' (il suo)':''}</option>`).join('');
 
 /* ====== PIANO (tutti gli alimenti visibili, si spunta quello scelto) ====== */
 const compK=(c,sel)=>{const ks=(sel!=null&&sel!==''?[c.opts[+sel]]:c.opts).map(optK).filter(k=>k!=null);return ks.length?[Math.min(...ks),Math.max(...ks)]:[0,0];};
@@ -166,7 +185,7 @@ const CKS='<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>';
 function renderPlan(){
  const iso=S.day, wd=wdOf(iso), d=dayOf(iso), AP=autoPicks(iso), t=todayIso(), fut=iso>t, past=iso<t;
  $('#dayTitle').textContent=`${wd.n} ${dateOf(iso).toLocaleDateString('it-IT',{day:'numeric',month:'long'})}`+(iso===t?' · oggi':iso===addDays(t,-1)?' · ieri':iso===addDays(t,1)?' · domani':'');
- $('#daySwap').innerHTML=swapOpts(d.k,wd.k);$('#daySwap').classList.toggle('alt',d.k!==wd.k);
+ $('#daySwap').innerHTML=swapOpts(d.k,wd.k,iso);perNote('#dayPer',iso);$('#daySwap').classList.toggle('alt',d.k!==wd.k);
  $('#dayIdea').innerHTML=d.idea?`<span>💡 Idee della nutrizionista:</span> ${esc(d.idea)}`:'';
  $('#dayIdea').hidden=!d.idea;
  const hasFree=MEALS.some(([mk])=>(d.meals[mk]||[]).some(c=>c.free));
@@ -236,13 +255,13 @@ function unitOfFood(n){const e=kGet(n),bf=brandOf(n);return Array.isArray(e)?e[1
 function renderDiary(){
  const dt=dateOf(diaryDate), d=dPlan(), log=S.diary[diaryDate]||[];
  $('#dDate').value=diaryDate;
- $('#dSwap').innerHTML=swapOpts(d.k,wdOf(diaryDate).k);$('#dFut').hidden=diaryDate<=todayIso();$('#dSwap').classList.toggle('alt',d.k!==wdOf(diaryDate).k);
+ $('#dSwap').innerHTML=swapOpts(d.k,wdOf(diaryDate).k,diaryDate);perNote('#dPer',diaryDate);$('#dFut').hidden=diaryDate<=todayIso();$('#dSwap').classList.toggle('alt',d.k!==wdOf(diaryDate).k);
  $('#dTitle').textContent=longDate(dt)+(diaryDate===isoOf(new Date())?' · oggi':'');
  const tot=log.reduce((a,e)=>a+(+e.k||0),0), plan=dayRange(d,diaryDate);
  $('#dTot').innerHTML=`<b>${Math.round(tot)} kcal</b> mangiate · piano ${del(d.k)} ≈ ${rFmt(plan)}`;
  $('#dBar').style.width=`${Math.min(100,tot/(plan[1]||1)*100)}%`;
- const sp=S.dplanned[diaryDate];$('#dOld').hidden=!(sp&&sp.plan!==PLAN_REC.id);
- if(sp&&sp.plan!==PLAN_REC.id)$('#dOld').innerHTML=`Questo giorno è stato registrato con il piano <b>${esc(planTitle(sp.plan))}</b> (previste ≈ ${Math.round(sp.t)} kcal${sp.free?' + pasto libero':''}). Gli alimenti segnati restano quelli; i menu qui sotto sono del piano attuale.`;
+ const sp=S.dplanned[diaryDate],cid=ctxAt(diaryDate).id;$('#dOld').hidden=!(sp&&sp.plan!==cid);
+ if(sp&&sp.plan!==cid)$('#dOld').innerHTML=`Questo giorno è stato registrato con il piano <b>${esc(planTitle(sp.plan))}</b> (previste ≈ ${Math.round(sp.t)} kcal${sp.free?' + pasto libero':''}). Gli alimenti segnati restano quelli; i menu qui sotto sono del piano in vigore quel giorno.`;
  $('#dMeals').innerHTML=MEALS.map(([mk,mn,ic])=>{
   const comps=d.meals[mk]||[], free=comps[0]&&comps[0].free;
   const ents=log.map((e,i)=>({...e,i})).filter(e=>e.m===mk&&!e.x), mt=ents.reduce((a,e)=>a+(+e.k||0),0);
@@ -258,8 +277,13 @@ function renderDiary(){
 function diaryAdd(e,iso=diaryDate){(S.diary[iso]=S.diary[iso]||[]).push(e);snapDay(iso);save();rerender();}
 /* il diario conserva cosa hai mangiato (nome, quantità, kcal) e le kcal previste quel giorno con il piano di allora:
    così cambiare piano non cambia il passato */
-function snapDay(iso){const o=S.dplanned[iso];if(o&&o.plan!==PLAN_REC.id&&S.diary[iso]&&S.diary[iso].length)return;if(S.diary[iso]&&S.diary[iso].length)S.dplanned[iso]=Object.assign(dayPlanned(iso),{plan:PLAN_REC.id,day:dPlanK(iso)});else delete S.dplanned[iso];}
-const plannedOf=iso=>{const x=S.dplanned[iso];return x&&x.plan!==PLAN_REC.id?x:dayPlanned(iso);};
+function snapDay(iso){const o=S.dplanned[iso],id=ctxAt(iso).id;if(o&&o.plan!==id&&S.diary[iso]&&S.diary[iso].length)return;if(S.diary[iso]&&S.diary[iso].length)S.dplanned[iso]=Object.assign(dayPlanned(iso),{plan:id,day:dPlanK(iso)});else delete S.dplanned[iso];}
+const plannedOf=iso=>{const x=S.dplanned[iso];return x&&x.plan!==ctxAt(iso).id?x:dayPlanned(iso);};
+/* avviso nel Piano e nel Diario quando la data usa un piano diverso da quello di oggi */
+const fshort=x=>dateOf(x).toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'});
+const perRange=p=>p?(p.to===p.from?`il ${fshort(p.from)}`:p.to?`dal ${fshort(p.from)} al ${fshort(p.to)}`:`dal ${fshort(p.from)}`):'';
+function perNote(sel,iso){const el=$(sel);if(!el)return;const c=ctxAt(iso),on=c.id!==PLAN_REC.id;el.hidden=!on;if(!on)return;const p=periodAt(iso);
+ el.innerHTML=`📋 Piano di questo giorno: <b>${esc(c.rec.title)}</b> · ${perRange(p)}${p&&p.from>todayIso()?' · partirà da solo':''}`;}
 const planTitle=id=>{const r=PLANS.list.find(x=>x.id===id);return r?r.title:'un piano eliminato';};
 function planEntry(d,mk,ci,j,q){const c=d.meals[mk][ci],o=c.opts[j],base=optK(o);q=q==null||q===''?o[1]:+q;return{m:mk,n:o[0],q,u:o[2],k:base==null?0:base*q/o[1]};}
 
@@ -565,9 +589,7 @@ function aiPrompt(){const c=recipeCtx;return`Sono a dieta. Crea una ricetta per 
 
 /* ====== SCELTE SUGGERITE: per ogni alimento non spuntato propone un prodotto preciso, uguale per tutta la settimana
    (dispensa) o a rotazione su pochi prodotti (carne, pesce, ecc.), così la spesa ha pochi prodotti e nessun "a scelta" ====== */
-const AUTO_FIX=(PREFS.shopping||{}).fixed||{};
-/* rotate: {tipo:{options:[nomi in ordine di preferenza] (facoltativo, se manca: tutte nell'ordine del piano), max: prodotti diversi a settimana}} */
-const AUTO_ROT=(PREFS.shopping||{}).rotate||{};
+/* preferenze della spesa (per piano): fixed {tipo: nome}; rotate: {tipo:{options:[nomi in ordine di preferenza] (facoltativo, se manca: tutte nell'ordine del piano), max: prodotti diversi a settimana}} */
 const buyOf=o=>(o[3]||[[o[0],o[1],o[2]]]).map(b=>b[0]);
 const _autoMemo={};
 /* suggeriti per la settimana (lun-dom) che contiene la data */
@@ -581,9 +603,9 @@ function autoPicks(iso){
  all.forEach(([d,mk,c,i])=>{const key=pkey(d,mk,i);
   if(c.opts.length<2||isSel(S.picks[key]))return;
   if(c.t==='piattounico'){later.push([key,c]);return;}
-  let j=0;
-  if(AUTO_FIX[c.t]){const f=c.opts.findIndex(o=>o[0]===AUTO_FIX[c.t]);if(f>=0)j=f;}
-  else if(AUTO_ROT[c.t]){const {options:list,max=99}=AUTO_ROT[c.t], u=used[c.t]||{};
+  let j=0;const {FIX,ROT}=ctxAt(d);
+  if(FIX[c.t]){const f=c.opts.findIndex(o=>o[0]===FIX[c.t]);if(f>=0)j=f;}
+  else if(ROT[c.t]){const {options:list,max=99}=ROT[c.t], u=used[c.t]||{};
    let cand=list?list.map(n=>c.opts.findIndex(o=>o[0]===n)).filter(x=>x>=0):c.opts.map((o,x)=>x);
    const chosen=cand.filter(x=>u[c.opts[x][0]]);if(chosen.length>=max)cand=chosen;
    if(cand.length){j=cand[0];cand.forEach(x=>{if((u[c.opts[x][0]]||0)<(u[c.opts[j][0]]||0))j=x;});}}
@@ -629,37 +651,71 @@ function renderWeek(){
 /* ====== PIANI ====== */
 const fdate=iso=>iso?dateOf(iso).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'}):'';
 function renderPlans(){
- const a=PLAN_REC, nd=DAYS.length;
- $('#planCur').innerHTML=`<div class="plancur">In uso: <b>${esc(a.title)}</b>${a.author?` · ${esc(a.author)}`:''}<br><small>${nd} giorni · attivo dal ${fdate(a.from)}${isExample(a)?' · piano di esempio':''}</small></div>${PLAN.notes?`<details class="pnotes"><summary>📝 Note del nutrizionista</summary><p>${esc(PLAN.notes)}</p></details>`:''}`;
- const others=PLANS.list.filter(x=>x.id!==a.id).sort((x,y)=>(y.from||y.added).localeCompare(x.from||x.added));
- $('#planList').innerHTML=others.length?`<h4 class="sub">Archivio</h4>`+others.map(x=>`<div class="planrow"><span>${esc(x.title)}${x.author?` · ${esc(x.author)}`:''}<small>${x.from?'usato l\'ultima volta dal '+fdate(x.from):'caricato il '+fdate(x.added)+', mai usato'}</small></span><span class="acts"><button class="btn ghost sm" data-puse="${esc(x.id)}">Usa questo</button><button class="btn line sm" data-pdel="${esc(x.id)}" aria-label="Elimina">🗑️</button></span></div>`).join(''):'';
+ const a=PLAN_REC, t=todayIso(), cur=periodAt(t), nextP=PERIODS.find(e=>e.from>t), vt=PLAN.validTo;
+ const tit=id=>{const r=PLANS.list.find(x=>x.id===id);return r?r.title:'?';};
+ $('#planCur').innerHTML=`<div class="plancur">In uso oggi: <b>${esc(a.title)}</b>${a.author?` · ${esc(a.author)}`:''}<br><small>${DAYS.length} giorni · ${cur?perRange(cur):''}${isExample(a)?' · piano di esempio':''}</small>${vt&&!nextP?`<small class="pvt">Il piano indicava fino al ${fdate(vt)}: quando ricevi il nuovo, caricalo.</small>`:''}<div class="acts"><button class="btn line sm" data-cedit="${cur?cur.from:''}">📅 Cambia la data di inizio</button><button class="btn line sm" data-pview="${esc(a.id)}">👁 Sfoglia</button></div></div>${PLAN.notes?`<details class="pnotes"><summary>📝 Note del nutrizionista</summary><p>${esc(PLAN.notes)}</p></details>`:''}`;
+ const cal=PERIODS.slice().reverse().map(e=>{const now=e.from<=t&&(!e.to||e.to>=t),fut=e.from>t;
+  return`<div class="planrow calrow${now?' now':''}"><span>${esc(tit(e.plan))}<small>${perRange(e)}${now?' · in uso':fut?' · programmato':''}</small></span><span class="acts"><button class="btn line sm" data-cedit="${e.from}" aria-label="Cambia la data di inizio">📅</button>${PERIODS.length>1?`<button class="btn line sm" data-cdel="${e.from}" aria-label="Togli dal calendario">✕</button>`:''}</span></div>`;}).join('');
+ const used=id=>PERIODS.filter(e=>e.plan===id);
+ const arch=PLANS.list.slice().sort((x,y)=>{const ux=used(x.id),uy=used(y.id),kx=ux.length?ux[ux.length-1].from:x.added,ky=uy.length?uy[uy.length-1].from:y.added;return ky.localeCompare(kx);}).map(x=>{const u=used(x.id);
+  return`<div class="planrow"><span>${esc(x.title)}${x.author?` · ${esc(x.author)}`:''}<small>${u.length?u.map(perRange).join('; '):'caricato il '+fdate(x.added)+', non è nel calendario'}</small></span><span class="acts"><button class="btn line sm" data-pview="${esc(x.id)}">👁 Sfoglia</button>${x.id===a.id&&!nextP?'':`<button class="btn ghost sm" data-pres="${esc(x.id)}">▶ Riprendi dal…</button>`}${x.id===a.id?'':`<button class="btn line sm" data-pdel="${esc(x.id)}" aria-label="Elimina">🗑️</button>`}</span></div>`;}).join('');
+ $('#planList').innerHTML=`<h4 class="sub">Calendario</h4><p class="hint">Ogni piano vale dalla sua data di inizio fino al giorno prima del successivo. Piano, Diario e Spesa usano da soli il piano di quel giorno.</p>${cal}<h4 class="sub">Archivio</h4>${arch}`;
 }
-function activatePlan(id){
- const st=JSON.parse(JSON.stringify(readPlans()||PLANS)), cur=st.list.find(x=>x.id===st.active), nx=st.list.find(x=>x.id===id);if(!nx)return;
- const testPrefs=new URLSearchParams(location.search).has('prefs');
- /* il diario tiene le kcal previste con il piano che lascio */
- const S2=JSON.parse(JSON.stringify(S));Object.keys(S.diary).forEach(iso=>{const x=S.dplanned[iso];if(!x||x.plan===PLAN_REC.id)snapDay(iso);});
- /* scelte e preferenze del piano che lascio (null = quelle del file) */
- if(cur)cur.state=Object.assign(Object.fromEntries(PLAN_KEYS.map(k=>[k,S[k]])),{prefs:testPrefs?readLocalPrefs():PREFS_LOCAL?PREFS:null});
- const ns=nx.state||{};delete nx.state;nx.from=today();st.active=id;
- try{writePlans(st);}catch(e){Object.assign(S,S2);alert('Spazio esaurito nella memoria del browser: non riesco a cambiare piano. Elimina dall\'archivio i piani che non usi e riprova.');return;}
- if('prefs' in ns){if(ns.prefs)writePrefs(ns.prefs);else clearPrefs();} /* un piano mai usato parte dalle preferenze attuali */
- delete ns.prefs;Object.assign(S,PLAN_DEF(),ns);save();
- if(testPrefs){const u=new URL(location.href);u.searchParams.delete('prefs');location.replace(u);}else location.reload();
-}
+/* finestra per la data di inizio: restituisce la data scelta o null */
+function askStart({title,plan,def,old}){return new Promise(res=>{const dl=$('#calDlg'),inp=$('#cdDate');
+ $('#cdT').textContent=title;inp.value=def||todayIso();
+ const info=()=>{const d=inp.value;if(!d){$('#cdInfo').textContent='';return;}
+  const nx=PERIODS.find(e=>e.from>d&&e.from!==old), same=PERIODS.find(e=>e.from===d&&e.from!==old), prev=planAt(PLANS,addDays(d,-1)), first=PERIODS.length&&PERIODS[0].from<d;
+  $('#cdInfo').textContent=`Dal ${fshort(d)}${nx?` al ${fshort(addDays(nx.from,-1))}`:' in poi'} vale «${(PLANS.list.find(r=>r.id===plan)||{}).title||''}».`+(same?` Sostituisce l'inizio di «${planTitle(same.plan)}» di quel giorno.`:'')+(first&&prev!==plan?` «${planTitle(prev)}» si ferma il ${fshort(addDays(d,-1))}.`:'');};
+ info();inp.oninput=info;
+ dl.onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.cdq!=null){inp.value=addDays(todayIso(),+b.dataset.cdq);info();return;}
+  if(b.id==='cdOk'){if(!/^\d{4}-\d\d-\d\d$/.test(inp.value)){inp.focus();return;}dl.close();res(inp.value);}
+  if(b.id==='cdNo'){dl.close();res(null);}};
+ dl.oncancel=()=>res(null);
+ dl.showModal();});}
+/* salva il calendario e riapre l'app (i piani in vigore per data cambiano) */
+function applyCal(st,msg){try{writePlans(st);}catch(e){alert('Spazio esaurito nella memoria del browser: elimina dall\'archivio i piani che non usi e riprova.');return;}
+ Object.keys(S.diary).forEach(iso=>{if(!S.dplanned[iso])snapDay(iso);});save();
+ if(msg)sessionStorage.setItem('dietaApp.flash',msg);reloadNoPrefs();}
+async function resumePlan(id){const x=PLANS.list.find(r=>r.id===id);if(!x)return;
+ const d=await askStart({title:`Da quando usare «${x.title}»?`,plan:id,def:todayIso()});if(!d)return;
+ applyCal(setStart(JSON.parse(JSON.stringify(readPlans()||PLANS)),id,d),`«${x.title}» in calendario dal ${fshort(d)}`);}
+/* compatibilità (prove): usa un piano da oggi */
+function activatePlan(id){applyCal(setStart(JSON.parse(JSON.stringify(readPlans()||PLANS)),id,todayIso()));}
+async function editStart(from){const e=PERIODS.find(x=>x.from===from);if(!e)return;
+ const d=await askStart({title:`Nuova data di inizio di «${planTitle(e.plan)}»`,plan:e.plan,def:from,old:from});if(!d||d===from)return;
+ applyCal(setStart(JSON.parse(JSON.stringify(readPlans()||PLANS)),e.plan,d,from),`Data di inizio cambiata: ${fshort(d)}`);}
+function delStart(from){const e=PERIODS.find(x=>x.from===from);if(!e||PERIODS.length<2)return;const i=PERIODS.indexOf(e),prev=PERIODS[i-1];
+ if(!confirm(`Togliere dal calendario «${planTitle(e.plan)}» ${perRange(e)}?\n\n${prev?`Quei giorni useranno «${planTitle(prev.plan)}».`:`Quei giorni useranno «${planTitle(PERIODS[1].plan)}».`} Il piano resta in archivio e il diario non cambia.`))return;
+ const st=JSON.parse(JSON.stringify(readPlans()||PLANS));st.cal=calOf(st).filter(x=>x.from!==from);st.cal=calOf(st);applyCal(st,'Tolto dal calendario');}
+/* ====== SFOGLIA: un piano dell'archivio, solo da guardare ====== */
+let pvId=null,pvDay=0;
+function renderPV(){const c=ctxOf(pvId),r=c.rec,D=c.DAYS,d=D[pvDay]||D[0],u=PERIODS.filter(e=>e.plan===r.id);
+ $('#pvBody').innerHTML=`<h3>👁 ${esc(r.title)}</h3><p class="hint">Solo da guardare${u.length?' · '+u.map(perRange).join('; '):''}${r.id===PLAN_REC.id?' · in uso oggi':''}.</p>
+  <nav class="chips">${D.map((x,i)=>`<button class="chip ${x===d?'on':''}" data-pvd="${i}">${esc(x.n.slice(0,3))}</button>`).join('')}</nav>
+  ${d.idea?`<p class="idea"><span>💡</span> ${esc(d.idea)}</p>`:''}
+  ${MEALS.map(([mk,mn,ic])=>{const cs=d.meals[mk]||[];if(!cs.length)return'';
+   return`<article class="meal pv"><header><h3><span>${esc(ic||'')}</span>${esc(mn)}</h3></header>${cs.map(c=>c.free?'<div class="row free">Pasto libero</div>':`<div class="pvrow"><small>${esc(c.label)}</small><span>${c.opts.map(o=>`${esc(o[0])} <i>${esc(optDetail(c,o))}</i>`).join(' · ')}</span></div>`).join('')}</article>`;}).join('')}
+  <div class="tools"><button class="btn sm" id="pvClose">Torna al piano attuale</button></div>`;}
 function importPlan(file){const fr=new FileReader();fr.onload=()=>{let j;try{j=JSON.parse(fr.result);}catch(e){alert('Il file non è un JSON valido.');return;}
  const err=planErrors(j);if(err.length){alert('Questo file non è un piano valido:\n\n• '+err.join('\n• '));return;}
  addPlan(j,j.title||file.name.replace(/\.json$/i,''));};fr.readAsText(file);}
-/* aggiunge un piano valido all'archivio e propone di usarlo; false se non c'è spazio */
+/* aggiunge un piano valido all'archivio e chiede da quando vale; false se non c'è spazio */
 function addPlan(j,title){const st=readPlans()||PLANS, id=newPlanId();
  st.list.push({id,title:String(title),author:String(j.author||''),added:today(),plan:j});try{writePlans(st);}catch(e){alert('Spazio esaurito nella memoria del browser: elimina dall\'archivio i piani che non usi e riprova.');return false;}
- if(confirm(`Piano «${title}» caricato (${j.days.length} giorni).\n\nVuoi usarlo da subito? Il piano attuale resta in archivio con le tue scelte.`))activatePlan(id);
- else{PLANS.list=st.list;renderPlans();toast('Piano aggiunto all\'archivio');}return true;}
+ PLANS.list=st.list;
+ const vf=typeof j.validFrom==='string'&&/^\d{4}-\d\d-\d\d$/.test(j.validFrom)?j.validFrom:null;
+ askStart({title:`Piano «${title}» caricato (${j.days.length} giorni). Da quando inizia?`,plan:id,def:vf||todayIso()}).then(d=>{
+  if(d)applyCal(setStart(JSON.parse(JSON.stringify(readPlans()||PLANS)),id,d),`«${title}» in calendario dal ${fshort(d)}`);
+  else{renderPlans();toast('Piano in archivio: «Riprendi dal…» per metterlo in calendario');}});
+ return true;}
 function exportPlan(){const name=`piano-${String(PLAN_REC.title||'dieta').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}.json`;
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(PLAN,null,1)],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
-function deletePlan(id){const st=readPlans()||PLANS, x=st.list.find(y=>y.id===id);if(!x||id===st.active)return;
- if(!confirm(`Eliminare il piano «${x.title}» dall'archivio? Il diario resta, ma perdi le scelte legate a quel piano.`))return;
- st.list=st.list.filter(y=>y.id!==id);writePlans(st);PLANS.list=st.list;renderPlans();toast('Piano eliminato');}
+function deletePlan(id){const st=JSON.parse(JSON.stringify(readPlans()||PLANS)), x=st.list.find(y=>y.id===id);if(!x||id===st.active)return;
+ const n=PERIODS.filter(e=>e.plan===id).length;
+ if(!confirm(`Eliminare il piano «${x.title}» dall'archivio?${n?' Esce anche dal calendario: quei giorni useranno il piano precedente.':''} Il diario resta com'è.`))return;
+ st.list=st.list.filter(y=>y.id!==id);st.cal=calOf(st);applyCal(st,'Piano eliminato');}
 
 /* ====== IMPORT DA PDF (Gemini) ======
    PI = bozza in revisione {raw, map, title, author, notes, file}; resta salvata finché non la salvi o la scarti */
@@ -935,12 +991,12 @@ const altSplit=n=>/^[A-ZÀ-Ü][\wà-ü]+ o [A-ZÀ-Ü][\wà-ü]+$/.test(n)?n.spli
 /* sottogruppi della spesa = voci del piano (Carne fresca, Carne conservata, Pesce fresco...).
    Ogni prodotto, in lista o alternativo, si spunta per conto suo. */
 let _nt=null;
-function nameTypes(){if(_nt&&_nt.plan===PLAN)return _nt;const t=new Map(),lab={};
- DAYS.forEach(d=>Object.values(d.meals).forEach(cs=>cs.forEach(c=>{if(c.free)return;(lab[c.t]=lab[c.t]||{})[c.label]=(lab[c.t][c.label]||0)+1;
+function nameTypes(){const ids=[...new Set([PLAN_REC.id,...shopIsos().map(i=>ctxAt(i).id)])],key=ids.join();if(_nt&&_nt.key===key)return _nt;const t=new Map(),lab={};
+ ids.flatMap(id=>ctxOf(id).DAYS).forEach(d=>Object.values(d.meals).forEach(cs=>cs.forEach(c=>{if(c.free)return;(lab[c.t]=lab[c.t]||{})[c.label]=(lab[c.t][c.label]||0)+1;
   c.opts.forEach(o=>{if(!o[3])altSplit(shopName(o[0])).concat(shopName(o[0])).forEach(n=>{if(!t.has(n))t.set(n,c.t);});});})));
  const GEN={snack:'Snack',yogurtpro:'Yogurt proteici',yogurt:'Yogurt',formaggio:'Formaggi e latticini',fruttasecca:'Frutta secca',dolce:'Dolci'};
  const tl=Object.fromEntries(Object.entries(lab).map(([k,v])=>[k,Object.keys(v).length>1&&GEN[k]?GEN[k]:Object.entries(v).sort((x,y)=>y[1]-x[1])[0][0]]));
- return _nt={plan:PLAN,t,tl};}
+ return _nt={key,t,tl};}
 let panAlts=[];
 function shopGroups(all,every=all){const {t:NT,tl}=nameTypes(), G=new Map();panAlts=[];
  const grp=(cat,ty)=>{const k=cat+'|'+ty;if(!G.has(k))G.set(k,{cat,t:ty,label:tl[ty]||'',items:[],alts:[]});return G.get(k);};
@@ -1045,7 +1101,12 @@ document.addEventListener('click',e=>{
  if(b.id==='wIn'){acAction('acIn');return;}
  if(b.id==='wPlan'){setTab('impost');$('#planSet').scrollIntoView({behavior:'smooth'});$('#planFile').click();}
  if(b.id==='planExp')exportPlan();
- if(b.dataset.puse){const x=PLANS.list.find(y=>y.id===b.dataset.puse);if(x&&confirm(`Usare il piano «${x.title}»? Quello attuale va in archivio con le tue scelte.`))activatePlan(x.id);}
+ if(b.dataset.pres)resumePlan(b.dataset.pres);
+ if(b.dataset.cedit)editStart(b.dataset.cedit);
+ if(b.dataset.cdel)delStart(b.dataset.cdel);
+ if(b.dataset.pview){pvId=b.dataset.pview;pvDay=todayIdx();renderPV();$('#planView').showModal();}
+ if(b.dataset.pvd!=null){pvDay=+b.dataset.pvd;renderPV();}
+ if(b.id==='pvClose')$('#planView').close();
  if(b.dataset.pdel)deletePlan(b.dataset.pdel);
  if(b.id==='prefGo'){setTab('impost');$('#planSet').scrollIntoView({behavior:'smooth'});}
  if(b.dataset.fixapply){const t=b.dataset.fixapply,v=$(`[data-fixsel="${CSS.escape(t)}"]`).value;changePrefs(p=>{if(v)p.shopping.fixed[t]=v;else delete p.shopping.fixed[t];});}
@@ -1189,10 +1250,11 @@ Object.keys(S.diary).forEach(iso=>{if(!S.dplanned[iso])snapDay(iso);});save();
 renderDays();renderPlan();renderPrefWarn();setTab(['piano','diario','spesa','calorie','info'].includes(S.tab)?S.tab:'piano');
 /* accesso per test e console del browser (lo script è un modulo, quindi non crea variabili globali) */
 /* testi che dipendono dal piano e dalle preferenze */
+{const f=sessionStorage.getItem('dietaApp.flash');if(f){sessionStorage.removeItem('dietaApp.flash');setTimeout(()=>toast(f),300);}}
 document.title='La mia dieta'+(PREFS.name?' · '+PREFS.name:'');
 $('#listInfo').hidden=!PLAN.days.some(d=>Object.values(d.meals).some(cs=>cs.some(c=>c.list)));
 $('#credits').textContent=PLAN.credits||(PLAN.author?'Piano alimentare elaborato da '+PLAN.author+'.':'');
 $('#xtraInfo').hidden=!XTRA.length;
 if(XTRA.length)$('#xtraInfo').innerHTML=`A colazione trovi sempre anche ${XTRA.map(x=>x.info||`<b>${esc(x.name)}</b>`).join(' e ')}: le quantità sono calcolate per avere le stesse calorie, in media, delle alternative previste quel giorno.`;
 bootDone();
-window.app={PLANS,PLAN_REC,checkPrefs,activatePlan,PLAN,PREFS,DAYS,MEALS,S,setTab,renderDays,renderPlan,shopText,shopItems,genRecipe,autoPicks,pkey,save,regMeal,mealState,todayIso,addDays,dayOf};
+window.app={ctxAt,planIdAt,PERIODS,PLANS,PLAN_REC,checkPrefs,activatePlan,PLAN,PREFS,DAYS,MEALS,S,setTab,renderDays,renderPlan,shopText,shopItems,genRecipe,autoPicks,pkey,save,regMeal,mealState,todayIso,addDays,dayOf};

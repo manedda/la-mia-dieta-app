@@ -28,7 +28,7 @@ function localDocs(){
  const months={};Object.entries(S.diary||{}).forEach(([iso,e])=>{if(!e||!e.length)return;const m=iso.slice(0,7);(months[m]=months[m]||{days:{},planned:{}}).days[iso]=e;if(S.dplanned&&S.dplanned[iso])months[m].planned[iso]=S.dplanned[iso];});
  Object.keys(months).sort().forEach(m=>{const x=months[m];d['diary-'+m]=JSON.stringify({days:sortObj(x.days),planned:sortObj(x.planned)});});
  const p=localStorage.getItem(FK);if(p)d.prefs=p;
- const st=J(PK);if(st&&st.list){d.plans=JSON.stringify({active:st.active,list:st.list.map(({plan,...r})=>r)});st.list.forEach(r=>{d['plan-'+r.id]=JSON.stringify(r.plan);});}
+ const st=J(PK);if(st&&st.list){d.plans=JSON.stringify({active:st.active,list:st.list.map(({plan,...r})=>r),...(st.cal?{cal:st.cal}:{})});st.list.forEach(r=>{d['plan-'+r.id]=JSON.stringify(r.plan);});}
  return d;
 }
 const sortObj=o=>Object.fromEntries(Object.keys(o).sort().map(k=>[k,o[k]]));
@@ -48,7 +48,10 @@ function mergeDoc(n,a,b){
  if(n.startsWith('diary-'))return mergeDiary(a,b);
  const x=JSON.parse(a),y=JSON.parse(b);
  if(n==='prefs'&&x.legacy&&!y.legacy)return b; /* copia automatica dal vecchio file: vince quella nel cloud */
- if(n==='plans'){const ids=new Set(x.list.map(r=>r.id));return JSON.stringify({active:x.active,list:[...x.list,...y.list.filter(r=>!ids.has(r.id))]});}
+ if(n==='plans'){const ids=new Set(x.list.map(r=>r.id)),list=[...x.list,...y.list.filter(r=>!ids.has(r.id))];
+  /* calendario: unisco gli inizi; nello stesso giorno vince questo dispositivo */
+  const days=new Set((x.cal||[]).map(e=>e.from)),cal=[...(x.cal||[]),...(y.cal||[]).filter(e=>!days.has(e.from))].sort((a,b)=>a.from.localeCompare(b.from));
+  return JSON.stringify({active:x.active,list,...(cal.length?{cal}:{})});}
  if(n==='main'){/* vince questo dispositivo, ma unisco le raccolte per non perdere aggiunte fatte altrove */
   ['picks','pantry','checked','hidden','dplan','shopLog'].forEach(k=>{if(y[k]&&typeof y[k]==='object')x[k]={...y[k],...(x[k]||{})};});
   const uni=(k,key)=>{const a=x[k]||[],seen=new Set(a.map(key));x[k]=[...a,...(y[k]||[]).filter(e=>!seen.has(key(e)))];};

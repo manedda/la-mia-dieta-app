@@ -1,9 +1,11 @@
 /* ====== ARCHIVIO DEI PIANI E DELLE PREFERENZE ======
    Qui passa tutto ciò che riguarda dove sono salvati piani e preferenze.
    Oggi: memoria del browser (localStorage). Con Firebase questo file sincronizzerà anche il cloud.
-   Piani: {active:id, list:[{id, title, author, added, from, src?, plan, state?}]}
+   Piani: {active:id, list:[{id, title, author, added, from, src?, plan, state?}], cal:[{from:data, plan:id}]}
    - src: file da cui è stato caricato (i piani inclusi nell'app si aggiornano da soli se il file cambia)
-   - from: data dell'ultima attivazione; state: scelte legate a quel piano quando non è attivo */
+   - state.prefs: preferenze del piano quando non è quello in uso
+   - cal: calendario. Ogni piano vale dalla sua data di inizio fino al giorno prima dell'inizio successivo;
+     lo stesso piano può comparire più volte (piano ripreso). "active" è sempre il piano in vigore oggi */
 const PK='dietaApp.plans', FK='dietaApp.prefs', BK='dietaApp.boot';
 export const DEFAULT_PLAN_URL='data/piano-esempio.json', EXAMPLE_ID='esempio';
 /* versioni precedenti: il piano personale era incluso nell'app; ora diventa un piano dell'utente come gli altri */
@@ -45,6 +47,22 @@ export const readPlans=()=>read(PK);
 const changed=()=>window.dispatchEvent(new Event('dieta:changed'));
 export const writePlans=st=>{if(window.dietaFrozen)return;localStorage.setItem(PK,JSON.stringify(st));changed();};
 export const newPlanId=()=>'p'+Date.now().toString(36);
+/* calendario ordinato, solo con piani che esistono ancora */
+export const calOf=st=>(st&&Array.isArray(st.cal)?st.cal:[]).filter(e=>e&&e.from&&st.list.some(r=>r.id===e.plan)).sort((a,b)=>a.from.localeCompare(b.from))
+ .reduce((c,e)=>{if(!c.length||c[c.length-1].plan!==e.plan)c.push(e);return c;},[]); /* due inizi di fila dello stesso piano = uno solo */
+/* piano in vigore in una data: l'ultimo iniziato entro quel giorno; prima del primo inizio vale il primo */
+export function planAt(st,iso){const c=calOf(st);let id=c.length?c[0].plan:st.active;c.forEach(e=>{if(e.from<=iso)id=e.plan;});return id;}
+/* periodo di un inizio: {from, to (ultimo giorno, null se in corso), plan} */
+export function periods(st){const c=calOf(st);return c.map((e,i)=>({...e,i,to:c[i+1]?addDay(c[i+1].from,-1):null}));}
+const addDay=(iso,n)=>{const [y,m,d]=iso.split('-').map(Number),t=new Date(y,m-1,d+n);return`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;};
+/* aggiunge (o sposta, se old è dato) un inizio nel calendario; due inizi nello stesso giorno non sono ammessi: vince l'ultimo */
+export function setStart(st,plan,from,old){let c=calOf(st);if(old!=null)c=c.filter(e=>!(e.from===old));c=c.filter(e=>e.from!==from);c.push({from,plan});st.cal=c.sort((a,b)=>a.from.localeCompare(b.from));return st;}
+/* il piano in uso cambia: le preferenze di quello che lascio restano con lui, quelle del nuovo tornano (se le aveva) */
+function switchTo(st,id){const cur=st.list.find(r=>r.id===st.active),nx=st.list.find(r=>r.id===id);if(!nx||cur===nx)return;
+ if(cur)cur.state={prefs:read(FK)};
+ const ns=nx.state||{};delete nx.state;
+ if('prefs' in ns){if(ns.prefs)localStorage.setItem(FK,JSON.stringify(ns.prefs));else localStorage.removeItem(FK);} /* mai usato: parte dalle preferenze attuali */
+ st.active=id;}
 
 /* piano attivo; al primo avvio si parte dal piano di esempio */
 export async function loadActivePlan(){
@@ -52,15 +70,21 @@ export async function loadActivePlan(){
  if(st&&Array.isArray(st.list)&&st.list.some(r=>r.src&&r.src!==DEFAULT_PLAN_URL)){
   st.list.forEach(r=>{if(r.src&&r.src!==DEFAULT_PLAN_URL){if(r.src===LEGACY_PLAN)localStorage.setItem(LK,r.id);delete r.src;}});writePlans(st);}
  if(!st||!Array.isArray(st.list)||!st.list.length){
-  st={active:EXAMPLE_ID,list:[await exampleRec()]};
+  st={active:EXAMPLE_ID,list:[await exampleRec()],cal:[{from:today(),plan:EXAMPLE_ID}]};
   writePlans(st);
  }
  let rec=st.list.find(r=>r.id===st.active);
  if(!rec){rec=st.list[0];st.active=rec.id;writePlans(st);}
+ /* versioni precedenti: niente calendario (il piano attivo parte dalla sua data di attivazione) e scelte messe da parte con i piani in archivio */
+ if(!calOf(st).length){st.cal=[{from:rec.from||today(),plan:rec.id}];writePlans(st);}
+ if(st.list.some(r=>r.state&&Object.keys(r.state).some(k=>k!=='prefs'))){st.list.forEach(r=>{if(r.state)r.state='prefs' in r.state?{prefs:r.state.prefs}:undefined;if(!r.state)delete r.state;});writePlans(st);}
+ /* il piano in vigore oggi secondo il calendario (un piano programmato parte da solo) */
+ const want=planAt(st,today());
+ if(want!==st.active&&!new URLSearchParams(location.search).has('prefs')){switchTo(st,want);writePlans(st);rec=st.list.find(r=>r.id===st.active);}
  /* se l'ultimo avvio con questo piano non è arrivato in fondo (piano difettoso), torno al piano incluso nell'app */
  if(localStorage.getItem(BK)===rec.id&&!rec.src){let def=st.list.find(isExample);
   if(!def){try{def=await exampleRec();st.list.push(def);}catch(e){def=null;}}
-  if(def){st.active=def.id;writePlans(st);rec=def;
+  if(def){switchTo(st,def.id);setStart(st,def.id,today());writePlans(st);rec=def;
    setTimeout(()=>alert('L\'app non riusciva ad aprirsi con l\'ultimo piano usato: ho ripreso il piano di esempio. L\'altro piano resta in archivio, da Impostazioni puoi riattivarlo.'),800);}}
  localStorage.setItem(BK,rec.id);
  if(rec.src){try{const fresh=await getJSON(rec.src);if(!planErrors(fresh).length&&JSON.stringify(fresh)!==JSON.stringify(rec.plan)){rec.plan=fresh;writePlans(st);}}catch(e){/* offline: va bene la copia salvata */}}

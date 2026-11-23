@@ -29,6 +29,7 @@
   <div class="panel dayhead"><button class="ring" id="dayRing" aria-label="Apri il diario di questo giorno"></button><div class="dh"><div class="tnav"><button class="dstep" data-dmove="-1" aria-label="Giorno precedente">‹</button><h2 id="dayTitle"></h2><button class="dstep" data-dmove="1" aria-label="Giorno successivo">›</button></div><p class="daykcal" id="dayKcal"></p><p class="dd" id="dayDiary"></p></div>
    <div class="swap"><span>Segui il piano di</span><select id="daySwap" aria-label="Piano da seguire"></select></div>
    <div class="idea" id="dayIdea"></div></div>
+  <p class="pernote" id="dayPer" hidden></p>
   <p class="hint lead" id="planLead"></p>
   <div class="meals" id="meals"></div>
   <div class="foot"><button class="btn line sm" id="resetPicks">Azzera le scelte della settimana</button></div>
@@ -60,6 +61,7 @@
   <div class="swap"><span>Piano seguito</span><select id="dSwap" aria-label="Piano seguito quel giorno"></select></div>
   <p class="hint" id="dFut" hidden>È un giorno futuro: il diario si compila da solo quando arriva il giorno.</p>
   <p class="hint" id="dTot"></p><div class="progress"><i id="dBar"></i></div></div>
+  <p class="pernote" id="dPer" hidden></p>
   <p class="warnbox soft" id="dOld" hidden></p>
   <div class="meals" id="dMeals"></div>
   <div class="panel" style="margin-top:20px"><h4 class="sub">Giorni registrati</h4><nav class="chips wrapc" id="dHist"></nav></div>
@@ -103,7 +105,7 @@
    <div id="planCur"></div>
    <div id="planList"></div>
    <div class="bkrow"><button class="btn sm" id="planImp">⬆️ Carica da file</button><button class="btn sm" id="planPdf">📄 Carica da PDF</button><button class="btn line sm" id="planExp">⬇️ Esporta il piano attivo</button><input type="file" id="planFile" accept=".json,application/json" hidden><input type="file" id="pdfFile" accept=".pdf,application/pdf" hidden></div>
-   <p class="hint">Puoi caricare il PDF del nutrizionista (lo legge l'AI, serve l'accesso con Google; prima di salvare controlli tutto) oppure un file nel formato dell'app. Quello vecchio resta in archivio: puoi tornarci quando vuoi, con le scelte che avevi fatto. Il diario non cambia.</p>
+   <p class="hint">Puoi caricare il PDF del nutrizionista (lo legge l'AI, serve l'accesso con Google; prima di salvare controlli tutto) oppure un file nel formato dell'app. Ti chiedo da quando inizia: il piano precedente vale fino al giorno prima e resta in archivio, con le sue preferenze. Il diario non cambia.</p>
    <h3 class="sub2">🧩 Preferenze e piano</h3>
    <div id="prefCheck"></div>
   </div>
@@ -156,6 +158,8 @@
  <p class="hint">Sostituisce i dati nel cloud con quelli di qui; quelli presenti solo nel cloud restano.</p>
  <p class="hint">Nel dubbio, fai prima un backup in ⚙️ Impostazioni.</p></div></dialog>
 <dialog id="scan"><div class="scanbox"><h3>📷 Codice a barre</h3><div class="scview"><video id="scVid" playsinline muted autoplay></video><i></i></div><p class="hint" id="scMsg"></p><button class="btn line" id="scClose">Chiudi</button></div></dialog>
+<dialog id="calDlg"><div class="cdbox"><h3 id="cdT"></h3><div class="tools cdq"><button class="btn line sm" data-cdq="0">Oggi</button><button class="btn line sm" data-cdq="1">Domani</button><input type="date" id="cdDate" aria-label="Data di inizio"></div><p class="hint" id="cdInfo"></p><p class="hint">Non serve una data di fine: il piano vale finché non ne inizia un altro.</p><div class="tools"><button class="btn line sm" id="cdNo">Annulla</button><button class="btn sm" id="cdOk">Conferma</button></div></div></dialog>
+<dialog id="planView"><div class="pvbox" id="pvBody"></div></dialog>
 <dialog id="pdfImp"><div class="pibox" id="piBody"></div></dialog>
 <dialog id="recipe">
  <div class="rhead"><small id="rMeta"></small><h3 id="rTitle"></h3></div>
