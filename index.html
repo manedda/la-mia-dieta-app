@@ -35,14 +35,21 @@
  </section>
  <section id="spesa" hidden>
   <div class="shophead"><h2>Lista della spesa</h2><span class="hint" id="shopCount"></span></div>
+  <div class="seg sseg" id="shopSeg"><button data-sview="scegli">1 · Scegli</button><button data-sview="lista">2 · Lista <span id="shopN"></span></button></div>
   <div class="progress"><i id="shopBar"></i></div>
-  <p class="hint">Scegli i giorni. Trovi un prodotto per voce, senza doppioni: quello scelto nel Piano o, se non hai scelto, il suggerito. Sotto ogni reparto trovi tutte le alternative del piano: se al supermercato prendi una di quelle, toccala e conta al posto del prodotto in lista. Con 🏠 sposti in dispensa quello che hai già a casa. Scegli la data della spesa e spunta quello che compri: ogni data ha le sue spunte, salvate nello storico in fondo.</p>
-  <div class="wknav"><button class="iconbtn" data-swk="-1" aria-label="Settimana precedente">‹</button><b id="shopWkLbl"></b><button class="iconbtn" data-swk="1" aria-label="Settimana successiva">›</button></div>
-  <nav class="chips" id="shopDays"></nav>
-  <div class="tools"><button class="btn ghost sm" id="allDays">Tutta la settimana</button><button class="btn line sm" id="noDays">Nessun giorno</button><button class="btn line sm" id="restoreHidden" hidden></button><button class="btn line sm" id="catBtn">↕️ Ordine reparti</button><button class="btn sm" id="shareShop">Condividi lista</button></div>
   <div class="dnav sdate"><span>🗓️ Spesa del</span><input type="date" id="sDate" aria-label="Giorno in cui fai la spesa"><button class="btn ghost sm" id="sToday" hidden>Oggi</button></div>
+  <div id="shopPick">
+   <p class="hint">Scegli i giorni della settimana per cui fai la spesa, poi seleziona quello che vuoi comprare: i prodotti del piano partono già selezionati, le alternative le aggiungi tu, anche più di una. Togli la spunta a quello che hai già a casa. Le scelte valgono per la spesa della data sopra.</p>
+   <div class="wknav"><button class="iconbtn" data-swk="-1" aria-label="Settimana precedente">‹</button><b id="shopWkLbl"></b><button class="iconbtn" data-swk="1" aria-label="Settimana successiva">›</button></div>
+   <nav class="chips" id="shopDays"></nav>
+   <div class="tools"><button class="btn ghost sm" id="allDays">Tutta la settimana</button><button class="btn line sm" id="noDays">Nessun giorno</button><button class="btn line sm" id="selPlan">Solo il piano</button><button class="btn line sm" id="selNone">Deseleziona tutto</button><button class="btn line sm" id="restoreHidden" hidden></button><button class="btn line sm" id="catBtn">↕️ Ordine reparti</button></div>
+  </div>
+  <div id="shopGo" hidden>
+   <p class="hint">Al supermercato spunta quello che metti nel carrello. Le spunte restano salvate nella spesa del <b class="sDateLbl"></b>.</p>
+   <div class="tools"><button class="btn sm" id="shareShop">Condividi lista</button></div>
+   <form class="add" id="addForm"><input id="addName" placeholder="Aggiungi altro (es. detersivo)" autocomplete="off"><select id="addCat"></select><button class="btn">+</button></form>
+  </div>
   <div class="card" id="catEdit" hidden></div>
-  <form class="add" id="addForm"><input id="addName" placeholder="Aggiungi altro (es. detersivo)" autocomplete="off"><select id="addCat"></select><button class="btn">+</button></form>
   <div id="shopList"></div>
   <div class="panel" id="shopHistBox" style="margin-top:20px" hidden><h4 class="sub">🧾 Spese registrate</h4><p class="hint">Quello che spunti viene salvato nella spesa del giorno scelto sopra.</p><div id="shopHist"></div></div>
  </section>

@@ -373,3 +373,8 @@ html[data-theme=dark] #shopDays .chip.on{color:#0f1411}
 /* sottogruppi della spesa */
 .sgrp+.sgrp{margin-top:10px}.sgrp h5{margin:10px 0 2px;font-size:12.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--acc)}
 .sgrp .ialt{margin:6px 0 6px;padding-top:0;border-top:0}.sgrp .ialt>small{display:block;font-size:12px;color:var(--mute);margin:0 0 6px}
+
+/* spesa in due passi */
+.sseg{margin:8px 0 10px}.sseg button{font-size:14px}
+.item.pick .nm small{color:var(--mute)}.item.pick:not(.sel) .nm{color:var(--mute)}
+.btn.wide{display:block;width:100%;margin:14px 0 4px;padding:13px;font-size:15px}

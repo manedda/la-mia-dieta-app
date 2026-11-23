@@ -23,7 +23,7 @@ const save=()=>{if(window.dietaFrozen)return;localStorage.setItem(LS,JSON.string
 const PLAN_KEYS=['picks','swap','dplan','checked','hidden','shopDays','day'];
 const PLAN_DEF=()=>({picks:{},swap:{},dplan:{},checked:{},hidden:{},shopDays:[],day:null});
 S.dplanned=S.dplanned||{};
-S.pantry=S.pantry||{};
+S.pantry=S.pantry||{};S.shopSel=S.shopSel||{};
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const unitFmt=(q,u)=>{if(!u)return'';if(u==='g')return`${q} g`;if(u==='pz')return q===1?'1 pz':`${q} pz`;
@@ -922,7 +922,7 @@ function shopGroups(all,every=all){const {t:NT,tl}=nameTypes(), G=new Map();panA
  const seen=new Set(every.map(i=>i.n));
  shopIsos().map(iso=>({...dayOf(iso),iso})).forEach(d=>MEALS.forEach(([mk])=>(d.meals[mk]||[]).forEach((c,i)=>{
   if(c.free||c.opts.length<2)return;const cat=SHOP_CAT[c.t]||'Altro';
-  c.opts.forEach(o=>(o[3]||[[o[0],o[1],o[2]]]).forEach(b=>altSplit(shopName(b[0])).forEach(n=>{if(seen.has(n)||S.hidden[n])return;seen.add(n);if(S.pantry&&S.pantry[n]===shopDate){panAlts.push(n);return;}const bc=CAT_ORDER.includes(b[3]||cat)?(b[3]||cat):'Altro';grp(bc,NT.get(n)||c.t).alts.push(n);})));})));
+  c.opts.forEach(o=>(o[3]||[[o[0],o[1],o[2]]]).forEach(b=>altSplit(shopName(b[0])).forEach(n=>{if(seen.has(n)||S.hidden[n])return;seen.add(n);const bc=CAT_ORDER.includes(b[3]||cat)?(b[3]||cat):'Altro';grp(bc,NT.get(n)||c.t).alts.push(n);})));})));
  const by={};[...G.values()].forEach(g=>{g.alts.sort((x,y)=>x.localeCompare(y));(by[g.cat]=by[g.cat]||[]).push(g);});
  /* i gruppi con un solo prodotto e senza alternative vanno insieme in cima al reparto, senza titolo */
  Object.keys(by).forEach(c=>{const l=by[c],one=l.filter(g=>g.items.length+g.alts.length<2&&g.t!=='_mine'),rest=l.filter(g=>!one.includes(g)).sort((x,y)=>(x.t==='_mine')-(y.t==='_mine')||x.label.localeCompare(y.label));
@@ -943,26 +943,40 @@ function renderShopHist(){const ds=Object.keys(S.shopLog||{}).filter(k=>S.shopLo
  $('#shopHistBox').hidden=!ds.length;
  $('#shopHist').innerHTML=ds.map(k=>{const l=S.shopLog[k];return`<details class="shist"><summary><b>${esc(sdFmt(k))}</b> · ${l.length} ${l.length===1?'prodotto':'prodotti'}${k===shopDate?' · <em>in corso</em>':''}</summary><ul>${catOrd().map(c=>l.filter(x=>x.cat===c).map(x=>`<li>${esc(x.n)}</li>`).join('')).join('')}${l.filter(x=>!catOrd().includes(x.cat)).map(x=>`<li>${esc(x.n)}</li>`).join('')}</ul><div class="tools"><button class="btn line sm" data-sdgo="${k}">Aggiungi a questa spesa</button><button class="btn line sm" data-sldel="${k}">Elimina</button></div></details>`;}).join('');}
 const srcFmt=s=>s.length<=3?s.join(' · '):`${s.length} pasti: ${[...new Set(s.map(x=>x.split(' ')[0]))].join(', ')}`;
+/* due passi: 1) scegli cosa comprare (per la spesa del giorno scelto), 2) lista da depennare al supermercato */
+const shopSel=()=>S.shopSel[shopDate]||{};
+const isPick=(n,plan)=>{const v=shopSel()[n];return v==null?plan:!!v;};
+function shopModel(){const all=shopItems(), GB=shopGroups(all,all), list=[];
+ Object.values(GB).flat().forEach(g=>{g.items.forEach(i=>{if(isPick(i.n,true))list.push({n:i.n,cat:g.cat,src:i.src,key:i.key,custom:i.custom});});
+  g.alts.forEach(n=>{if(isPick(n,false))list.push({n,cat:g.cat,src:[],alt:true});});});
+ return{all,GB,list};}
 function renderShop(){
- const sw=wkIsos(addDays(todayIso(),7*shopWk)), f=x=>dateOf(x).toLocaleDateString('it-IT',{day:'numeric',month:'short'});
+ const view=S.shopView==='lista'?'lista':'scegli', sw=wkIsos(addDays(todayIso(),7*shopWk)), f=x=>dateOf(x).toLocaleDateString('it-IT',{day:'numeric',month:'short'});
+ const {GB,list}=shopModel(), done=list.filter(bought).length, nAll=Object.values(GB).flat().reduce((n,g)=>n+g.items.length+g.alts.length,0);
+ $$('#shopSeg [data-sview]').forEach(x=>x.classList.toggle('on',x.dataset.sview===view));$('#shopN').textContent=list.length?`(${list.length})`:'';
+ $('#shopPick').hidden=view!=='scegli';$('#shopGo').hidden=view!=='lista';$('#shopHistBox').hidden=true;
  $('#shopWkLbl').textContent=(shopWk===0?'Questa settimana':shopWk===1?'Settimana prossima':shopWk===-1?'Settimana scorsa':'Settimana')+` · ${f(sw[0])} – ${f(sw[6])}`;
  $('#shopDays').innerHTML=sw.map(iso=>{const k=wdOf(iso).k;return`<button class="chip ${S.shopDays.includes(k)?'on':''}" data-sday="${esc(k)}"><span>${esc(wdOf(iso).n.slice(0,3))}</span><small>${dateOf(iso).getDate()}</small></button>`;}).join('');
- const all=shopItems(), items=all.filter(i=>!inPantry(i)), GB=shopGroups(items,all), pan=all.filter(inPantry).concat(panAlts.map(n=>({key:n,n})));
- const ok=bought, done=items.filter(ok).length, extra=Object.values(GB).flat().reduce((n,g)=>n+g.alts.filter(altB).length,0);
  if(!$('#catEdit').hidden)renderCatEdit();
- $('#sDate').value=shopDate;$('#sToday').hidden=shopDate===isoOf(new Date());renderShopHist();
- $('#shopCount').textContent=items.length?`${done}/${items.length} presi${extra?` · +${extra} altre scelte`:''}`:'';
- $('#shopBar').style.width=items.length?`${done/items.length*100}%`:'0';
- const hiddenN=Object.keys(S.hidden).length;
- $('#restoreHidden').hidden=!hiddenN;$('#restoreHidden').textContent=`Ripristina ${hiddenN} voci nascoste`;
- if(!S.shopDays.length&&!S.custom.length){$('#shopList').innerHTML='<p class="empty">Seleziona almeno un giorno per creare la lista.</p>';return;}
- $('#shopList').innerHTML=catOrd().map(cat=>{
-  const gs=GB[cat]||[];if(!gs.length)return'';
-  const row=i=>`<label class="item ${ok(i)?'done':''}"><input type="checkbox" data-check="${esc(i.key)}" ${bought(i)?'checked':''}><span class="nm">${esc(i.n)}<small>${esc(srcFmt(i.src))}${!ok(i)&&lastBuy(i)?` · ultima volta ${esc(sdFmt(lastBuy(i)))}`:''}</small></span>${i.custom!=null?'':`<button class="pan" data-pantry="${esc(i.key)}" title="Ce l'ho già in dispensa" aria-label="Ce l'ho già">🏠</button>`}<button class="x" data-hide="${esc(i.key)}" aria-label="Rimuovi">×</button></label>`;
-  return`<section class="cat"><h4>${CAT_ICON[cat]} ${cat}</h4>${gs.map(g=>`<div class="sgrp">${g.label?`<h5>${esc(g.t==='_mine'?'Aggiunti da te':g.label)}</h5>`:''}${[...g.items].sort((a,b)=>ok(a)-ok(b)||a.n.localeCompare(b.n)).map(row).join('')}${g.alts.map(n=>`<label class="item alt ${altB(n)?'done':''}"><input type="checkbox" data-check="alt|${esc(n)}" data-acat="${esc(cat)}" ${altB(n)?'checked':''}><span class="nm">${esc(n)}<small>in alternativa${!altB(n)&&lastBuy({n})?` · ultima volta ${esc(sdFmt(lastBuy({n})))}`:''}</small></span><button class="pan" data-pantry="${esc(n)}" title="Ce l'ho già in dispensa" aria-label="Ce l'ho già">🏠</button><button class="x" data-hide="${esc(n)}" aria-label="Rimuovi">×</button></label>`).join('')}</div>`).join('')}</section>`;
- }).join('')+(pan.length?`<details class="pantry card"><summary>🏠 In dispensa (${pan.length}): non li devi comprare per questa spesa</summary>${pan.sort((a,b)=>a.n.localeCompare(b.n)).map(i=>`<div class="item"><span class="nm">${esc(i.n)}<small>Ce l'hai già per la spesa di questo giorno</small></span><button class="btn line sm" data-pantry="${esc(i.key)}">Finito, rimetti in lista</button></div>`).join('')}</details>`:'');
+ $$('.sDateLbl').forEach(x=>x.textContent=sdFmt(shopDate));
+ $('#sDate').value=shopDate;$('#sToday').hidden=shopDate===isoOf(new Date());
+ const hiddenN=Object.keys(S.hidden).length;$('#restoreHidden').hidden=!hiddenN;$('#restoreHidden').textContent=`Ripristina ${hiddenN} voci nascoste`;
+ if(view==='scegli'){
+  $('#shopCount').textContent=`${list.length} da comprare`;$('#shopBar').style.width=nAll?`${list.length/nAll*100}%`:'0';
+  if(!S.shopDays.length&&!S.custom.length){$('#shopList').innerHTML='<p class="empty">Seleziona almeno un giorno per vedere gli alimenti del piano.</p>';return;}
+  const row=(n,plan,small,hk)=>{const on=isPick(n,plan);return`<label class="item pick ${on?'sel':''}"><input type="checkbox" data-sel="${esc(n)}" data-plan="${plan?1:''}" ${on?'checked':''}><span class="nm">${esc(n)}<small>${small}</small></span>${hk?`<button class="x" data-hide="${esc(hk)}" aria-label="Nascondi">×</button>`:''}</label>`;};
+  $('#shopList').innerHTML=catOrd().map(cat=>{const gs=GB[cat]||[];if(!gs.length)return'';
+   return`<section class="cat"><h4>${CAT_ICON[cat]} ${cat}</h4>${gs.map(g=>`<div class="sgrp">${g.label?`<h5>${esc(g.t==='_mine'?'Aggiunti da te':g.label)}</h5>`:''}${[...g.items].sort((a,b)=>a.n.localeCompare(b.n)).map(i=>row(i.n,true,`nel piano: ${esc(srcFmt(i.src))}`,i.key)).join('')}${g.alts.map(n=>row(n,false,`in alternativa${lastBuy({n})?` · ultima volta ${esc(sdFmt(lastBuy({n})))}`:''}`,n)).join('')}</div>`).join('')}</section>`;}).join('')
+   +(list.length?`<button class="btn wide" data-sview="lista">Vai alla lista (${list.length}) →</button>`:'');
+  return;}
+ /* lista */
+ renderShopHist();
+ $('#shopCount').textContent=list.length?`${done}/${list.length} presi`:'';$('#shopBar').style.width=list.length?`${done/list.length*100}%`:'0';
+ if(!list.length){$('#shopList').innerHTML='<p class="empty">La lista è vuota: torna a «Scegli cosa comprare» e seleziona gli alimenti.</p>';return;}
+ $('#shopList').innerHTML=catOrd().map(cat=>{const its=list.filter(i=>i.cat===cat).sort((a,b)=>bought(a)-bought(b)||a.n.localeCompare(b.n));if(!its.length)return'';
+  return`<section class="cat"><h4>${CAT_ICON[cat]} ${cat}</h4>${its.map(i=>`<label class="item ${bought(i)?'done':''}"><input type="checkbox" data-check="${esc(i.custom!=null?i.key:'alt|'+i.n)}" data-acat="${esc(cat)}" ${bought(i)?'checked':''}><span class="nm">${esc(i.n)}<small>${i.alt?'in alternativa':esc(srcFmt(i.src))}</small></span>${i.custom!=null?`<button class="x" data-hide="${esc(i.key)}" aria-label="Elimina">×</button>`:''}</label>`).join('')}</section>`;}).join('');
 }
-function shopText(){const all=shopItems(), items=all.filter(i=>!inPantry(i)), GB=shopGroups(items,all);return'🛒 Lista della spesa\n'+catOrd().map(c=>{const gs=GB[c]||[];const L=gs.flatMap(g=>(g.label?[`· ${g.t==='_mine'?'Aggiunti da te':g.label}`]:[]).concat(g.items.filter(i=>!bought(i)).map(i=>`☐ ${i.n}`)).concat(g.alts.filter(n=>!altB(n)).map(n=>`☐ ${n} (in alternativa)`)));return L.some(x=>x.startsWith('☐')||x.startsWith('   '))?`\n${c}\n`+L.join('\n'):'';}).join('\n');}
+function shopText(){const {list}=shopModel(), L=list.filter(i=>!bought(i));return'🛒 Lista della spesa\n'+catOrd().map(c=>{const its=L.filter(i=>i.cat===c);return its.length?`\n${c}\n`+its.map(i=>`☐ ${i.n}`).join('\n'):'';}).join('\n');}
 
 /* ====== IMPOSTAZIONI GRAFICHE ====== */
 function renderSettings(){
@@ -1036,6 +1050,9 @@ document.addEventListener('click',e=>{
  if(b.id==='sToday'){shopDate=isoOf(new Date());renderShop();}
  if(b.dataset.sdgo){shopDate=b.dataset.sdgo;renderShop();$('#sDate').scrollIntoView({block:'center'});}
  if(b.dataset.sldel){const k=b.dataset.sldel;if(!confirm(`Eliminare la spesa del ${sdFmt(k)} dallo storico?`))return;delete S.shopLog[k];save();renderShop();}
+ if(b.dataset.sview){S.shopView=b.dataset.sview;save();renderShop();window.scrollTo({top:0});}
+ if(b.id==='selPlan'){delete S.shopSel[shopDate];save();renderShop();}
+ if(b.id==='selNone'){const m={};Object.values(shopModel().GB).flat().forEach(g=>{g.items.forEach(i=>m[i.n]=false);});S.shopSel[shopDate]=m;save();renderShop();}
  if(b.id==='restoreHidden'){S.hidden={};save();renderShop();}
  if(b.id==='resetPicks'&&confirm('Vuoi azzerare le scelte di questa settimana? Tornano i suggeriti.')){const ws=wkIsos(S.day);Object.keys(S.picks).forEach(k=>{if(ws.includes(k.slice(0,10)))delete S.picks[k];});save();rerender();}
  if(b.dataset.swk){shopWk=Math.max(-1,shopWk+ +b.dataset.swk);renderShop();}
@@ -1054,6 +1071,7 @@ document.addEventListener('change',e=>{
  if(s.id==='dDate'&&s.value){diaryDate=s.value;renderDiary();}
  if(s.id==='cFrom'&&s.selectedOptions[0]){$('#cQ').value=s.selectedOptions[0].dataset.q;convert();}
  if(s.matches('[data-check]'))shopMark(s.dataset.check,s.checked,s.dataset.acat);
+ if(s.matches('[data-sel]')){const n=s.dataset.sel,m=Object.assign({},shopSel());if(s.checked===!!s.dataset.plan)delete m[n];else m[n]=s.checked;if(Object.keys(m).length)S.shopSel[shopDate]=m;else delete S.shopSel[shopDate];save();renderShop();}
  if(s.id==='sDate'&&s.value){shopDate=s.value;renderShop();}
 });
 $('#addForm').addEventListener('submit',e=>{e.preventDefault();const n=$('#addName').value.trim();if(!n)return;S.custom.push({n,cat:$('#addCat').value});$('#addName').value='';save();renderShop();});
