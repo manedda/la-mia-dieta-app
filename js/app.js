@@ -141,6 +141,9 @@ const isIso=k=>/^\d{4}-\d\d-\d\d$/.test(k);
  /* scelte non valide o di giorni passati da più di 3 settimane */
  const old=addDays(todayIso(),-21);
  Object.keys(S.picks).forEach(k=>{const [iso,mk,i]=k.split('|'),d=isIso(iso)&&iso>=old&&dayOf(iso),c=d&&d.meals[mk]&&d.meals[mk][+i];if(!c||!(+S.picks[k]<c.opts.length))delete S.picks[k];});}
+/* il diario non si riempie più da solo: tolgo i pasti messi in automatico e le vecchie voci "tolte" */
+if(S.autoDay){const a=S.autoDay;if(S.diary[a])S.diary[a]=S.diary[a].filter(e=>!e.pl);delete S.autoDay;}
+Object.keys(S.diary).forEach(iso=>{S.diary[iso]=(S.diary[iso]||[]).filter(e=>!e.x);if(!S.diary[iso].length)delete S.diary[iso];});
 S.day=todayIso();
 const swapOpts=(sel,own)=>DAYS.map(d=>`<option value="${esc(d.k)}" ${d.k===sel?'selected':''}>${esc(d.n)}${d.k===own?' (il suo)':''}</option>`).join('');
 
@@ -148,6 +151,7 @@ const swapOpts=(sel,own)=>DAYS.map(d=>`<option value="${esc(d.k)}" ${d.k===sel?'
 const compK=(c,sel)=>{const ks=(sel!=null&&sel!==''?[c.opts[+sel]]:c.opts).map(optK).filter(k=>k!=null);return ks.length?[Math.min(...ks),Math.max(...ks)]:[0,0];};
 const rFmt=([a,b])=>Math.round(a)===Math.round(b)?`${Math.round(a)} kcal`:`${Math.round(a)}–${Math.round(b)} kcal`;
 function dayRange(d,iso){let t=[0,0];MEALS.forEach(([mk])=>(d.meals[mk]||[]).forEach((c,i)=>{if(c.free)return;const k=compK(c,S.picks[pkey(iso,mk,i)]);t[0]+=k[0];t[1]+=k[1];}));return t;}
+const CKS='<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>';
 function renderPlan(){
  const iso=S.day, wd=wdOf(iso), d=dayOf(iso), AP=autoPicks(iso), t=todayIso(), fut=iso>t, past=iso<t;
  $('#dayTitle').textContent=`${wd.n} ${dateOf(iso).toLocaleDateString('it-IT',{day:'numeric',month:'long'})}`+(iso===t?' · oggi':iso===addDays(t,-1)?' · ieri':iso===addDays(t,1)?' · domani':'');
@@ -159,18 +163,23 @@ function renderPlan(){
  $('#dayKcal').innerHTML=`<b>≈ ${rFmt(dr)}</b><small>previste${hasFree?', escluso il pasto libero':''}</small>`;
  const rg=$('#dayRing');rg.dataset.wgo=iso;rg.style.setProperty('--p',fut?0:pct);rg.innerHTML=`<i>${fut||!got?'<svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z"/><path d="M9 9h6M9 13h6"/></svg>':pct+'%'}</i>`;
  $('#dayDiary').textContent=fut?'Giorno futuro: le scelte servono per la spesa':got?`Nel diario: ${got} kcal`:log.some(e=>e.skip)?'Nel diario: pasti saltati':'Diario: niente segnato';
- $('#planLead').textContent=fut?'Tocca un alimento per sceglierlo, o un\'alternativa sotto per cambiarlo. Il cerchio tratteggiato è il suggerito: è quello che usano ricetta e spesa finché non scegli. Quando arriva il giorno, finisce da solo nel diario.':iso===t?'Quello che vedi qui è il diario di oggi: tocca un\'alternativa se hai mangiato altro, segna un pasto saltato o aggiungi un alimento fuori piano.':'Questo giorno è passato: segna un pasto con «Mangiato come da piano» o aggiungi quello che hai mangiato fuori piano. I pasti non segnati restano vuoti.';
+ $('#planLead').textContent=fut?'Giorno futuro: tocca un alimento per sceglierlo, o un\'alternativa sotto per cambiarlo. Il cerchio tratteggiato è il suggerito, quello che usano ricetta e spesa finché non scegli.':'Spunta gli alimenti che hai mangiato: tocca quello sopra, oppure un\'alternativa se hai mangiato quella. Toccalo di nuovo per toglierlo. Quello che non spunti non entra nel diario.';
  $('#meals').innerHTML=MEALS.map(([mk,mn,ic])=>{
   const comps=d.meals[mk]||[];
   if(!comps.length)return'';
   const free=comps[0].free;let mK=[0,0];const nAlt=comps.filter(c=>!c.free&&c.opts.length>1).length,nIt=comps.filter(c=>!c.free).length;
   const rows=comps.map((c,i)=>{
    if(c.free)return`<div class="row free">Pasto libero, goditelo 🙂</div>`;
-   const key=pkey(iso,mk,i), sel=S.picks[key], ck=compK(c,sel), sug=isSel(sel)?-1:(AP[key]??-1);mK[0]+=ck[0];mK[1]+=ck[1];
-   if(c.opts.length===1){const o=c.opts[0],k=optK(o);return`<div class="row" title="${esc(c.label)}"><div class="opt main on fixed"><i class="ck"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></i><span class="on1">${esc(o[0])}${c.note?`<small>${esc(c.note)}</small>`:''}</span><span class="od">${esc(optDetail(c,o))}${k!=null?` · ${Math.round(k)}`:''}</span></div></div>`;}
-   return`<div class="row" title="${esc(c.label)}">
-    ${(()=>{const sh=isSel(sel)?+sel:sug;const one=(o,j)=>{const k=optK(o),on=String(sel)===String(j);return`<button class="opt main ${on?'on':''}${j===sug?' sug':''}" ${j===sug?'title="Suggerito: è quello che trovi nella lista della spesa. Toccalo per confermarlo."':''} data-pick="${key}" data-j="${j}" aria-pressed="${on}"><i class="ck">${on?'<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>':''}</i><span class="on1">${esc(o[0])}${c.list?` <em class="tag">${esc(c.list)}</em>`:''}</span><span class="od">${esc(optDetail(c,o))}${k!=null?` · ${Math.round(k)}`:''}</span></button>`;};
-     return(sh>=0&&c.opts[sh]?one(c.opts[sh],sh):'')+`<div class="alts">${c.opts.map((o,j)=>{if(j===sh)return'';const k=optK(o);return`<button class="pill" data-pick="${key}" data-j="${j}" aria-pressed="false" title="${esc(optDetail(c,o))}${k!=null?` · ${Math.round(k)} kcal`:''}">${esc(o[0])}${k!=null?`<small>${Math.round(k)}</small>`:''}</button>`;}).join('')}</div>`;})()}</div>`;
+   /* oggi e giorni passati: la spunta = l'hai mangiato (voce nel diario); giorni futuri: la spunta = scelto per la spesa */
+   const key=pkey(iso,mk,i), sel=S.picks[key], ate=fut?null:log.find(e=>e.pl===`${mk}|${i}`&&!e.skip), sug=isSel(sel)?-1:(AP[key]??-1);
+   const sh=ate?(ate.j!=null?+ate.j:pickOf(key,c,AP)):(isSel(sel)?+sel:sug), ck=compK(c,ate?sh:sel);mK[0]+=ck[0];mK[1]+=ck[1];
+   const tip=on=>fut?'':` title="${on?'Mangiato: tocca per toglierlo dal diario':'Tocca se l\'hai mangiato'}"`;
+   const inner=(o,tag)=>{const k=optK(o);return`<span class="on1">${esc(o[0])}${tag||''}</span><span class="od">${esc(optDetail(c,o))}${k!=null?` · ${Math.round(k)}`:''}</span>`;};
+   if(c.opts.length===1){const o=c.opts[0],nt=c.note?`<small>${esc(c.note)}</small>`:'';
+    return`<div class="row" title="${esc(c.label)}">${fut?`<div class="opt main fixed fx"><i class="ck"></i>${inner(o,nt)}</div>`:`<button class="opt main fixed ${ate?'on':''}" data-pick="${key}" data-j="0" aria-pressed="${!!ate}"${tip(ate)}><i class="ck">${ate?CKS:''}</i>${inner(o,nt)}</button>`}</div>`;}
+   const on=fut?String(sel)===String(sh):!!ate;
+   const main=sh>=0&&c.opts[sh]?`<button class="opt main ${on?'on':''}${sh===sug&&!on?' sug':''}" ${fut&&sh===sug?'title="Suggerito: è quello che trovi nella lista della spesa. Toccalo per confermarlo."':tip(on)} data-pick="${key}" data-j="${sh}" aria-pressed="${on}"><i class="ck">${on?CKS:''}</i>${inner(c.opts[sh],c.list?` <em class="tag">${esc(c.list)}</em>`:'')}</button>`:'';
+   return`<div class="row" title="${esc(c.label)}">${main}<div class="alts">${c.opts.map((o,j)=>{if(j===sh)return'';const k=optK(o);return`<button class="pill" data-pick="${key}" data-j="${j}" aria-pressed="false" title="${fut?'':'L\'ho mangiato al posto di quello sopra · '}${esc(optDetail(c,o))}${k!=null?` · ${Math.round(k)} kcal`:''}">${esc(o[0])}${k!=null?`<small>${Math.round(k)}</small>`:''}</button>`;}).join('')}</div></div>`;
   }).join('');
   return`<article class="meal ${free?'is-free':''}"><header><div><h3><span>${esc(ic||'')}</span>${esc(mn)}</h3>${free?'':`<small class="mk">${rFmt(mK)} · ${nAlt?'scegli 1 per voce':nIt===1?'1 alimento':nIt+' alimenti'}</small>`}</div>${free?'':`<button class="btn ghost sm" data-recipe="${mk}">✨ Ricetta</button>`}</header>${rows}${fut?'':mealLog(iso,mk,free,log)}</article>`;
  }).join('');
@@ -178,39 +187,33 @@ function renderPlan(){
 
 /* piede del pasto nel Piano: stato nel diario, alimenti fuori piano */
 function mealLog(iso,mk,free,log){
- const st=mealState(iso,mk), ents=log.map((e,i)=>({...e,i})).filter(e=>e.m===mk&&!e.pl&&!e.skip), pk=log.filter(e=>e.m===mk&&e.pl&&!e.x).reduce((a,e)=>a+(+e.k||0),0), nx=log.filter(e=>e.m===mk&&e.x).length;
- const head=free?'':st==='plan'?`<span class="ok">✓ Nel diario · ${Math.round(pk)} kcal${nx?` · ${nx} ${nx===1?'alimento tolto':'alimenti tolti'}`:''}</span>${nx?`<button class="btn line sm" data-mrest="${mk}">Rimetti tutto</button>`:''}<button class="btn line sm" data-mskip="${mk}">Non l'ho mangiato</button>`
-  :st==='skip'?`<span class="sk">Pasto saltato: non conta nel diario</span><button class="btn line sm" data-mplan="${mk}">L'ho mangiato</button>`
-  :`<span class="no">${ents.length?'Segnato a mano':'Non segnato nel diario'}</span><button class="btn sm" data-mplan="${mk}">✓ Mangiato come da piano</button>`;
+ const ents=log.map((e,i)=>({...e,i})).filter(e=>e.m===mk&&!e.pl&&!e.skip), eat=log.filter(e=>e.m===mk&&e.pl&&!e.skip), pk=eat.reduce((a,e)=>a+(+e.k||0),0), skip=log.some(e=>e.m===mk&&e.skip), nr=(dayOf(iso).meals[mk]||[]).filter(c=>!c.free).length;
+ const head=free?'':skip?`<span class="sk">Pasto saltato: non conta nel diario</span><button class="btn line sm" data-mclr="${mk}">Annulla</button>`
+  :eat.length?`<span class="ok">✓ ${eat.length} di ${nr} nel diario · ${Math.round(pk)} kcal</span>${eat.length<nr?`<button class="btn line sm" data-mplan="${mk}">Spunta tutto</button>`:''}<button class="btn line sm" data-mclr="${mk}">Togli tutto</button>`
+  :`<span class="no">${ents.length?'Segnato a mano':'Niente spuntato'}</span><button class="btn line sm" data-mplan="${mk}">✓ Tutto il pasto</button><button class="btn line sm" data-mskip="${mk}">Saltato</button>`;
  return`<div class="mlog">${head?`<div class="mst">${head}</div>`:''}
   ${ents.length?`<ul class="log">${ents.map(e=>`<li><span>${esc(e.n)}${e.off?' <em class="tag off">fuori piano</em>':''}</span><b>${e.u?esc(unitFmt(+e.q,e.u))+' · ':''}${Math.round(e.k||0)} kcal</b><button class="x" data-ldel="${e.i}" aria-label="Elimina">×</button></li>`).join('')}</ul>`:''}
   <details class="off"><summary>＋ Alimento fuori piano</summary><div class="dadd" data-meal="${mk}" data-iso="${iso}"><input data-on data-sug placeholder="Nome (es. Pizza margherita)" autocomplete="off"><input type="number" inputmode="decimal" min="0" step="any" data-oq placeholder="g"><input type="number" inputmode="decimal" min="0" step="any" data-ok placeholder="kcal"><button class="btn sm" data-oadd="${mk}">+</button></div><small class="hint" data-oh>${OH0}</small></details></div>`;
 }
 /* ====== DIARIO COLLEGATO AL PIANO ======
-   Nel diario gli alimenti del piano hanno pl:"pasto|n" (rigenerati quando cambi scelta), x:1 = tolto, skip:1 = pasto saltato.
-   Oggi i pasti entrano da soli; i giorni passati solo se li segni; quelli futuri mai. */
+   Nel diario gli alimenti del piano hanno pl:"pasto|n" (rigenerati quando cambi scelta), skip:1 = pasto saltato.
+   Ogni alimento entra solo se lo spunti tu (oggi o giorni passati); i giorni futuri mai. j = alternativa mangiata. */
 const dLog=iso=>S.diary[iso]||[];
 const mealState=(iso,mk)=>{const l=dLog(iso).filter(e=>e.m===mk);return l.some(e=>e.skip)?'skip':l.some(e=>e.pl)?'plan':'none';};
 function planEntries(iso,mk){const d=dayOf(iso),ap=autoPicks(iso),l=dLog(iso);
  return(d.meals[mk]||[]).map((c,ci)=>{if(c.free)return null;const j=pickOf(pkey(iso,mk,ci),c,ap),pl=`${mk}|${ci}`;
-  if(l.some(e=>e.pl===pl&&e.x))return{m:mk,pl,x:1,n:c.opts[j][0],k:0};
-  return Object.assign(planEntry(d,mk,ci,j),{pl});}).filter(Boolean);}
+  return Object.assign(planEntry(d,mk,ci,j),{pl,j});}).filter(Boolean);}
 /* on: true = come da piano, 'skip' = saltato, false = niente */
 function regMeal(iso,mk,on){const d=dayOf(iso),ap=autoPicks(iso);
  if(on===true)(d.meals[mk]||[]).forEach((c,ci)=>{const key=pkey(iso,mk,ci);if(!c.free&&c.opts.length>1&&!isSel(S.picks[key]))S.picks[key]=String(pickOf(key,c,ap));});
  const add=on===true?planEntries(iso,mk):on==='skip'?[{m:mk,skip:1,n:'Pasto saltato',k:0}]:[];
  const l=dLog(iso).filter(e=>e.m!==mk||!(e.pl||e.skip)).concat(add);
  if(l.length)S.diary[iso]=l;else delete S.diary[iso];snapDay(iso);}
-const resync=(iso,mk)=>{if(iso<=todayIso()&&mealState(iso,mk)==='plan')regMeal(iso,mk,true);};
-/* oggi: i pasti non ancora toccati entrano nel diario come da piano (una volta al giorno) */
-function autoToday(){const t=todayIso();if(S.autoDay===t)return;const d=dayOf(t);
- MEALS.forEach(([mk])=>{const cs=d.meals[mk]||[];if(cs.length&&!cs[0].free&&!dLog(t).some(e=>e.m===mk))regMeal(t,mk,true);});S.autoDay=t;save();}
-function setDayPlan(iso,k){const st=Object.fromEntries(MEALS.map(([mk])=>[mk,mealState(iso,mk)]));
+function setDayPlan(iso,k){const had=dLog(iso).some(e=>e.pl);
  if(k===wdOf(iso).k)delete S.dplan[iso];else S.dplan[iso]=k;
  Object.keys(S.picks).forEach(x=>{if(x.startsWith(iso+'|'))delete S.picks[x];});
  const l=dLog(iso).filter(e=>!e.pl);if(l.length)S.diary[iso]=l;else delete S.diary[iso];
- if(iso<=todayIso())MEALS.forEach(([mk])=>{if(st[mk]==='plan'&&(dayOf(iso).meals[mk]||[]).some(c=>!c.free))regMeal(iso,mk,true);});
- snapDay(iso);}
+ snapDay(iso);if(had)toast('Ho tolto le spunte di questo giorno: segna di nuovo quello che hai mangiato');}
 const rerender=()=>{renderDays();renderPlan();if(!$('#diario').hidden)renderDiary();};
 
 /* ====== DIARIO ====== */
@@ -977,7 +980,7 @@ document.addEventListener('click',e=>{
  if(b.dataset.dmove){S.day=addDays(S.day,+b.dataset.dmove);save();renderDays();renderPlan();}
  if(b.id==='goToday'){S.day=todayIso();save();renderDays();renderPlan();}
  if(b.dataset.mplan||b.dataset.mskip){const mk=b.dataset.mplan||b.dataset.mskip;regMeal(S.day,mk,b.dataset.mplan?true:'skip');save();rerender();toast(b.dataset.mplan?'Pasto segnato nel diario':'Pasto saltato: non conta nel diario');}
- if(b.dataset.mrest){const mk=b.dataset.mrest;S.diary[S.day]=dLog(S.day).filter(e=>!(e.m===mk&&e.x));regMeal(S.day,mk,true);save();rerender();}
+ if(b.dataset.mclr){regMeal(S.day,b.dataset.mclr,false);save();rerender();}
  if(b.dataset.ldel){const l=dLog(S.day);l.splice(+b.dataset.ldel,1);if(!l.length)delete S.diary[S.day];snapDay(S.day);save();rerender();}
  if(b.dataset.recipe)openRecipe(b.dataset.recipe);
  if(b.dataset.sday){const k=b.dataset.sday;S.shopDays=S.shopDays.includes(k)?S.shopDays.filter(x=>x!==k):[...S.shopDays,k];save();renderShop();}
@@ -1005,13 +1008,18 @@ document.addEventListener('click',e=>{
  if(b.dataset.tdel){const x=b.dataset.tdel,g=x.slice(0,x.indexOf('|')),t=x.slice(x.indexOf('|')+1);changePrefs(p=>{delete p.shopping[g][t];});}
  if(b.id==='bkImp')$('#bkFile').click();
  if(b.dataset.hide){e.preventDefault();const k=b.dataset.hide;if(k.startsWith('custom|')){S.custom.splice(+k.split('|')[1],1);}else S.hidden[k]=true;delete S.checked[k];save();renderShop();}
- if(b.dataset.pick){const k=b.dataset.pick,j=b.dataset.j,[iso,mk,ci]=k.split('|');if(String(S.picks[k])===j)delete S.picks[k];else S.picks[k]=j;
-  /* se l'avevi tolto dal diario e ora lo scegli, vuol dire che l'hai mangiato */
-  if(S.diary[iso])S.diary[iso]=S.diary[iso].filter(e=>!(e.x&&e.pl===`${mk}|${ci}`));resync(iso,mk);save();rerender();}
+ if(b.dataset.pick){const k=b.dataset.pick,j=b.dataset.j,[iso,mk,ci]=k.split('|'),pl=`${mk}|${ci}`;
+  if(iso>todayIso()){if(String(S.picks[k])===j)delete S.picks[k];else S.picks[k]=j;}
+  else{const d=dayOf(iso),c=d.meals[mk][+ci],l=dLog(iso),at=l.findIndex(e=>e.pl===pl&&!e.skip),ate=l[at];
+   const nl=l.filter(e=>!(e.m===mk&&e.skip));
+   if(ate&&String(ate.j!=null?ate.j:pickOf(k,c))===j)nl.splice(nl.indexOf(ate),1);
+   else{if(c.opts.length>1)S.picks[k]=j;const ne=Object.assign(planEntry(d,mk,+ci,+j),{pl,j:+j});if(ate)nl[nl.indexOf(ate)]=ne;else nl.push(ne);}
+   if(nl.length)S.diary[iso]=nl;else delete S.diary[iso];snapDay(iso);}
+  save();rerender();}
  if(b.dataset.dshift){const t=dateOf(diaryDate);t.setDate(t.getDate()+(+b.dataset.dshift));diaryDate=isoOf(t);renderDiary();}
  if(b.id==='dToday'){diaryDate=isoOf(new Date());renderDiary();}
  if(b.dataset.dgo){diaryDate=b.dataset.dgo;renderDiary();}
- if(b.dataset.del){const l=S.diary[diaryDate],e=l[+b.dataset.del];if(e.pl&&!e.x)l[+b.dataset.del]={m:e.m,pl:e.pl,x:1,n:e.n,k:0};else l.splice(+b.dataset.del,1);if(!l.some(x=>!x.x))delete S.diary[diaryDate];snapDay(diaryDate);save();rerender();}
+ if(b.dataset.del){const l=S.diary[diaryDate];l.splice(+b.dataset.del,1);if(!l.length)delete S.diary[diaryDate];snapDay(diaryDate);save();rerender();}
  if(b.dataset.asplan){const mk=b.dataset.asplan;regMeal(diaryDate,mk,true);save();rerender();toast('Pasto segnato come da piano');}
  if(b.dataset.dadd){const w=b.closest('.dadd'),v=$('[data-dsel]',w).value;if(!v){toast('Scegli un alimento dal menu');return;}const [ci,j]=v.split(':').map(Number);diaryAdd(planEntry(dPlan(),b.dataset.dadd,ci,j,$('[data-dq]',w).value));}
  if(b.dataset.oadd){const w=b.closest('.dadd'),n=$('[data-on]',w).value.trim(),q=+$('[data-oq]',w).value||0,k=+$('[data-ok]',w).value||0;if(!n){toast("Scrivi il nome dell'alimento");return;}if(!k&&!confirm('Non hai indicato le kcal: vuoi aggiungerlo lo stesso?'))return;diaryAdd({m:b.dataset.oadd,n,q,u:q?unitOfFood(w._fn||n):'',k,off:true},w.dataset.iso||diaryDate);}
@@ -1023,7 +1031,7 @@ document.addEventListener('click',e=>{
  if(b.dataset.sdgo){shopDate=b.dataset.sdgo;renderShop();$('#sDate').scrollIntoView({block:'center'});}
  if(b.dataset.sldel){const k=b.dataset.sldel;if(!confirm(`Eliminare la spesa del ${sdFmt(k)} dallo storico?`))return;delete S.shopLog[k];save();renderShop();}
  if(b.id==='restoreHidden'){S.hidden={};save();renderShop();}
- if(b.id==='resetPicks'&&confirm('Vuoi azzerare le scelte di questa settimana? Tornano i suggeriti.')){const ws=wkIsos(S.day);Object.keys(S.picks).forEach(k=>{if(ws.includes(k.slice(0,10)))delete S.picks[k];});ws.forEach(iso=>MEALS.forEach(([mk])=>resync(iso,mk)));save();rerender();}
+ if(b.id==='resetPicks'&&confirm('Vuoi azzerare le scelte di questa settimana? Tornano i suggeriti.')){const ws=wkIsos(S.day);Object.keys(S.picks).forEach(k=>{if(ws.includes(k.slice(0,10)))delete S.picks[k];});save();rerender();}
  if(b.dataset.swk){shopWk=Math.max(-1,shopWk+ +b.dataset.swk);renderShop();}
  if(b.id==='shareShop'){const t=shopText();if(navigator.share)navigator.share({title:'Lista della spesa',text:t}).catch(()=>{});else navigator.clipboard.writeText(t).then(()=>toast('Lista copiata negli appunti'));}
  if(b.id==='rAgain')openRecipe(recipeCtx.mk);
@@ -1082,9 +1090,9 @@ applyUI(S.ui);
 const setToday=()=>{$('#today').textContent=longDate(new Date());};
 let lastToday=todayIso();
 /* app rimasta aperta oltre la mezzanotte */
-document.addEventListener('visibilitychange',()=>{if(document.hidden)return;setToday();const t=todayIso();if(t!==lastToday){if(S.day===lastToday)S.day=t;lastToday=t;autoToday();rerender();}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)return;setToday();const t=todayIso();if(t!==lastToday){if(S.day===lastToday)S.day=t;lastToday=t;rerender();}});
 setToday();renderFoodList();
-Object.keys(S.diary).forEach(iso=>{if(!S.dplanned[iso])snapDay(iso);});autoToday();save();
+Object.keys(S.diary).forEach(iso=>{if(!S.dplanned[iso])snapDay(iso);});save();
 renderDays();renderPlan();renderPrefWarn();setTab(['piano','diario','spesa','calorie','info'].includes(S.tab)?S.tab:'piano');
 /* accesso per test e console del browser (lo script è un modulo, quindi non crea variabili globali) */
 /* testi che dipendono dal piano e dalle preferenze */
@@ -1094,4 +1102,4 @@ $('#credits').textContent=PLAN.credits||(PLAN.author?'Piano alimentare elaborato
 $('#xtraInfo').hidden=!XTRA.length;
 if(XTRA.length)$('#xtraInfo').innerHTML=`A colazione trovi sempre anche ${XTRA.map(x=>x.info||`<b>${esc(x.name)}</b>`).join(' e ')}: le quantità sono calcolate per avere le stesse calorie, in media, delle alternative previste quel giorno.`;
 bootDone();
-window.app={PLANS,PLAN_REC,checkPrefs,activatePlan,PLAN,PREFS,DAYS,MEALS,S,setTab,renderDays,renderPlan,shopText,shopItems,genRecipe,autoPicks,pkey,save,regMeal,mealState,autoToday,todayIso,addDays,dayOf};
+window.app={PLANS,PLAN_REC,checkPrefs,activatePlan,PLAN,PREFS,DAYS,MEALS,S,setTab,renderDays,renderPlan,shopText,shopItems,genRecipe,autoPicks,pkey,save,regMeal,mealState,todayIso,addDays,dayOf};

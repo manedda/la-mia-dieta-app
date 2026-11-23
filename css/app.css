@@ -338,8 +338,8 @@ html[data-theme=dark] #shopDays .chip.on{color:#0f1411}
 /* stile A: una colonna a ogni larghezza, cerchio su ogni alimento, alternative a pillole */
 .meal .row{grid-template-columns:1fr;gap:4px}
 .meal .row>.lbl{display:none}
-.opt.main.fixed{cursor:default}
-.opt.main.fixed .ck{background:var(--acc);border:0;color:#fff}html[data-theme=dark] .opt.main.fixed .ck{color:#0f1411}
+.opt.main.fixed.fx{cursor:default}.opt.main.fx .ck{border:1.8px solid var(--line)}
+.opt.main.fixed.on .ck{background:var(--acc);border:0;color:#fff}html[data-theme=dark] .opt.main.fixed.on .ck{color:#0f1411}
 .opt.main .on1 small{display:block;color:var(--mute);font-size:12px;font-weight:400;margin-top:1px}
 .opt.main .on1 .tag{margin-left:4px}
 
