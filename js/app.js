@@ -819,11 +819,11 @@ function shopItems(){
 }
 let shopDate=isoOf(new Date());
 const sdFmt=iso=>dateOf(iso).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'});
+const bought=i=>(S.shopLog[shopDate]||[]).some(x=>x.n===i.n);
+const lastBuy=i=>Object.keys(S.shopLog).filter(k=>k!==shopDate&&S.shopLog[k].some(x=>x.n===i.n)).sort().pop();
 function shopMark(key,on){const it=shopItems().find(i=>i.key===key)||{n:(S.custom[+key.split('|')[1]]||{}).n||key,cat:'Altro'};
- const old=S.checked[key];delete S.checked[key];
- const drop=iso=>{const l=S.shopLog[iso];if(!l)return;S.shopLog[iso]=l.filter(x=>x.n!==it.n);if(!S.shopLog[iso].length)delete S.shopLog[iso];};
- if(typeof old==='string')drop(old);
- if(on){S.checked[key]=shopDate;const l=S.shopLog[shopDate]=S.shopLog[shopDate]||[];if(!l.some(x=>x.n===it.n))l.push({n:it.n,cat:it.cat});}
+ const l=(S.shopLog[shopDate]||[]).filter(x=>x.n!==it.n);if(on)l.push({n:it.n,cat:it.cat});
+ if(l.length)S.shopLog[shopDate]=l;else delete S.shopLog[shopDate];
  save();renderShop();}
 function renderShopHist(){const ds=Object.keys(S.shopLog||{}).filter(k=>S.shopLog[k].length).sort().reverse();
  $('#shopHistBox').hidden=!ds.length;
@@ -831,7 +831,7 @@ function renderShopHist(){const ds=Object.keys(S.shopLog||{}).filter(k=>S.shopLo
 const srcFmt=s=>s.length<=3?s.join(' · '):`${s.length} pasti: ${[...new Set(s.map(x=>x.split(' ')[0]))].join(', ')}`;
 function renderShop(){
  $('#shopDays').innerHTML=DAYS.map(d=>`<button class="chip ${S.shopDays.includes(d.k)?'on':''}" data-sday="${esc(d.k)}">${esc(d.n.slice(0,3))}</button>`).join('');
- const all=shopItems(), items=all.filter(i=>!inPantry(i)), pan=all.filter(inPantry), done=items.filter(i=>S.checked[i.key]).length;
+ const all=shopItems(), items=all.filter(i=>!inPantry(i)), pan=all.filter(inPantry), done=items.filter(bought).length;
  if(!$('#catEdit').hidden)renderCatEdit();
  $('#sDate').value=shopDate;$('#sToday').hidden=shopDate===isoOf(new Date());renderShopHist();
  $('#shopCount').textContent=items.length?`${done}/${items.length} presi`:'';
@@ -840,12 +840,12 @@ function renderShop(){
  $('#restoreHidden').hidden=!hiddenN;$('#restoreHidden').textContent=`Ripristina ${hiddenN} voci nascoste`;
  if(!S.shopDays.length&&!S.custom.length){$('#shopList').innerHTML='<p class="empty">Seleziona almeno un giorno per creare la lista.</p>';return;}
  $('#shopList').innerHTML=catOrd().map(cat=>{
-  const its=items.filter(i=>i.cat===cat).sort((a,b)=>(!!S.checked[a.key])-(!!S.checked[b.key])||a.n.localeCompare(b.n));
+  const its=items.filter(i=>i.cat===cat).sort((a,b)=>bought(a)-bought(b)||a.n.localeCompare(b.n));
   if(!its.length)return'';
-  return`<section class="cat"><h4>${CAT_ICON[cat]} ${cat}</h4>${its.map(i=>`<label class="item ${S.checked[i.key]?'done':''}"><input type="checkbox" data-check="${esc(i.key)}" ${S.checked[i.key]?'checked':''}><span class="nm">${esc(i.n)}<small>${esc(srcFmt(i.src))}${typeof S.checked[i.key]==='string'?` · preso ${esc(sdFmt(S.checked[i.key]))}`:''}</small></span>${i.custom?'':`<button class="pan" data-pantry="${esc(i.key)}" title="Ce l'ho già in dispensa" aria-label="Ce l'ho già">🏠</button>`}<button class="x" data-hide="${esc(i.key)}" aria-label="Rimuovi">×</button></label>`).join('')}</section>`;
+  return`<section class="cat"><h4>${CAT_ICON[cat]} ${cat}</h4>${its.map(i=>`<label class="item ${bought(i)?'done':''}"><input type="checkbox" data-check="${esc(i.key)}" ${bought(i)?'checked':''}><span class="nm">${esc(i.n)}<small>${esc(srcFmt(i.src))}${!bought(i)&&lastBuy(i)?` · ultima volta ${esc(sdFmt(lastBuy(i)))}`:''}</small></span>${i.custom?'':`<button class="pan" data-pantry="${esc(i.key)}" title="Ce l'ho già in dispensa" aria-label="Ce l'ho già">🏠</button>`}<button class="x" data-hide="${esc(i.key)}" aria-label="Rimuovi">×</button></label>`).join('')}</section>`;
  }).join('')+(pan.length?`<details class="pantry card"><summary>🏠 In dispensa (${pan.length}): non li devi comprare</summary>${pan.sort((a,b)=>a.n.localeCompare(b.n)).map(i=>`<div class="item"><span class="nm">${esc(i.n)}<small>Ce l'hai dal ${dateOf(S.pantry[i.key]).toLocaleDateString('it-IT',{day:'numeric',month:'short'})}</small></span><button class="btn line sm" data-pantry="${esc(i.key)}">Finito, rimetti in lista</button></div>`).join('')}</details>`:'');
 }
-function shopText(){const items=shopItems().filter(i=>!S.checked[i.key]&&!inPantry(i));return'🛒 Lista della spesa\n'+catOrd().map(c=>{const its=items.filter(i=>i.cat===c);return its.length?`\n${c}\n`+its.map(i=>`☐ ${i.n}`).join('\n'):'';}).join('\n');}
+function shopText(){const items=shopItems().filter(i=>!bought(i)&&!inPantry(i));return'🛒 Lista della spesa\n'+catOrd().map(c=>{const its=items.filter(i=>i.cat===c);return its.length?`\n${c}\n`+its.map(i=>`☐ ${i.n}`).join('\n'):'';}).join('\n');}
 
 /* ====== IMPOSTAZIONI GRAFICHE ====== */
 function renderSettings(){
@@ -907,10 +907,9 @@ document.addEventListener('click',e=>{
  if(b.id==='today'){S.day=DAYS[todayIdx()].k;save();renderDays();renderPlan();setTab('piano');}
  if(b.id==='allDays'){S.shopDays=DAYS.map(d=>d.k);save();renderShop();}
  if(b.id==='noDays'){S.shopDays=[];save();renderShop();}
- if(b.id==='clearChecked'){S.checked={};save();renderShop();toast('Spunte tolte: le spese registrate restano nello storico');}
  if(b.id==='sToday'){shopDate=isoOf(new Date());renderShop();}
  if(b.dataset.sdgo){shopDate=b.dataset.sdgo;renderShop();$('#sDate').scrollIntoView({block:'center'});}
- if(b.dataset.sldel){const k=b.dataset.sldel;if(!confirm(`Eliminare la spesa del ${sdFmt(k)} dallo storico?`))return;delete S.shopLog[k];Object.keys(S.checked).forEach(x=>{if(S.checked[x]===k)delete S.checked[x];});save();renderShop();}
+ if(b.dataset.sldel){const k=b.dataset.sldel;if(!confirm(`Eliminare la spesa del ${sdFmt(k)} dallo storico?`))return;delete S.shopLog[k];save();renderShop();}
  if(b.id==='restoreHidden'){S.hidden={};save();renderShop();}
  if(b.id==='resetPicks'&&confirm('Vuoi azzerare tutte le scelte degli alimenti?')){S.picks={};save();renderPlan();}
  if(b.id==='shareShop'){const t=shopText();if(navigator.share)navigator.share({title:'Lista della spesa',text:t}).catch(()=>{});else navigator.clipboard.writeText(t).then(()=>toast('Lista copiata negli appunti'));}
