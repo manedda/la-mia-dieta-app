@@ -101,7 +101,7 @@ const nFmt=x=>String(x).replace('.',',');
 const macros=e=>e.p==null?'':`proteine ${nFmt(e.p)} · grassi ${nFmt(e.g??'–')} · carboidrati ${nFmt(e.c??'–')}${e.f!=null?' · fibra '+nFmt(e.f):''} g`;
 const perE=e=>Array.isArray(e.k)?`${e.k[0]} kcal / ${unitFmt(1,e.k[1])}`:`${e.k} kcal / 100 ${e.u==='ml'?'ml':'g'}`;
 
-/* ====== ALTERNATIVE FISSE A COLAZIONE (preferenze: breakfastExtras), con quantità a parità di kcal medie ====== */
+/* ====== ALTERNATIVE FISSE AI PASTI (preferenze: breakfastExtras; meal = pasto, se manca è la colazione), con quantità a parità di kcal medie ====== */
 const XTRA=PREFS.breakfastExtras||[];
 XTRA.forEach(x=>{if(x.kcal100!=null)KCAL[x.name]=x.kcal100;});
 /* kcal scritte nel piano (facoltative): valgono più della tabella interna; quelle dei piani non in uso non cambiano quelle del piano in uso */
@@ -114,8 +114,7 @@ const round=(x,s)=>Math.max(s,Math.round(x/s)*s);
 const XT={},XALL=[];
 function addXtra(days,xtra){
  days.forEach(d=>{
-  const col=d.meals.col||[];
-  xtra.forEach(x=>{
+  xtra.forEach(x=>{const col=d.meals[x.meal||'col']||[];
    if(x.skipIfMealHas&&col.some(c=>c.t===x.skipIfMealHas))return;
    const c=x.addTo.map(t=>col.find(c=>c.t===t)).find(Boolean), per100=typeof KCAL[x.name]==='number'?KCAL[x.name]:null;
    if(!c||!per100)return;
@@ -887,7 +886,10 @@ const PED_SKIP=['piattounico','libera'];
 let PD=null, pdDirty=false;
 const pdInit=()=>{PD=JSON.parse(JSON.stringify(PREFS));PD.shopping=PD.shopping||{};PD.shopping.fixed=PD.shopping.fixed||{};PD.shopping.rotate=PD.shopping.rotate||{};PD.breakfastExtras=PD.breakfastExtras||[];pdDirty=false;};
 const pdTypes=()=>Object.entries(planTypes()).filter(([t,x])=>!PED_SKIP.includes(t)&&x.names.size>1);
-const colTypes=()=>{const m=new Map();PLAN.days.forEach(d=>(d.meals.col||[]).forEach(c=>{if(!c.free&&!m.has(c.type))m.set(c.type,c.label);}));return m;};
+const mealTypes=mk=>{const m=new Map();PLAN.days.forEach(d=>(d.meals[mk]||[]).forEach(c=>{if(!c.free&&!m.has(c.type))m.set(c.type,c.label);}));return m;};
+let pxMeal='col';
+const mealName=mk=>(MEALS.find(m=>m[0]===mk)||[,mk])[1];
+const pxOpts=()=>[...mealTypes(pxMeal)].map(([t,l])=>`<label><input type="checkbox" data-pxt="${esc(t)}"> ${esc(l)}</label>`).join('');
 const pdMode=t=>PD.shopping.fixed[t]!=null?'fix':PD.shopping.rotate[t]?'rot':'auto';
 const rotList=(t,names)=>{const r=PD.shopping.rotate[t];return r&&r.options?r.options.filter(n=>names.includes(n)):[...names];};
 function pdRotSet(t,names,list){const r=PD.shopping.rotate[t];if(!list.length)return false;
@@ -895,7 +897,7 @@ function pdRotSet(t,names,list){const r=PD.shopping.rotate[t];if(!list.length)re
  r.max=Math.min(Math.max(1,r.max||list.length),list.length);return true;}
 function renderPrefEd(){
  if(!PD)pdInit();
- const q=s=>`«${esc(s)}»`, ct=colTypes();
+ const q=s=>`«${esc(s)}»`, ct=mealTypes(pxMeal);
  const rows=pdTypes().map(([t,x])=>{const names=[...x.names], m=pdMode(t), id=esc(t);
   let sum='Automatico', body='';
   if(m==='fix'){const v=PD.shopping.fixed[t], ok=names.includes(v);sum='Sempre '+q(v)+(ok?'':' ⚠️');
@@ -909,20 +911,21 @@ function renderPrefEd(){
   if(m==='auto')body=`<p class="hint">L'app sceglie un prodotto alla volta, preferendo quelli che hai già in lista: così compri meno cose diverse.</p>`;
   return`<details class="ped" data-pt="${id}" ${pdOpen.has(t)?'open':''}><summary><b>${esc(x.label)}</b><small>${sum}</small></summary>
    <div class="pmode">${[['auto','Automatico'],['fix','Sempre lo stesso'],['rot','A rotazione']].map(([k,l])=>`<label><input type="radio" name="pm-${id}" value="${k}" data-pmode="${id}" ${m===k?'checked':''}> ${l}</label>`).join('')}</div>${body}</details>`;}).join('');
- const xs=PD.breakfastExtras.map((x,i)=>`<div class="planrow"><span>${esc(x.name)}<small>in alternativa a: ${(x.addTo||[]).map(t=>esc(ct.get(t)||t)).join(', ')||'—'}${x.kcal100?` · ${x.kcal100} kcal/100 ${x.kcalBase==='ml'?'ml':'g'}${x.kcalSrc==='ai'?' (stima AI)':''}`:''}</small></span><button class="btn line sm" data-pxdel="${i}" aria-label="Togli">🗑️</button></div>`).join('');
- const opts=[...ct].map(([t,l])=>`<label><input type="checkbox" data-pxt="${esc(t)}"> ${esc(l)}</label>`).join('');
+ const xs=PD.breakfastExtras.map((x,i)=>`<div class="planrow"><span>${esc(x.name)}<small>${esc(mealName(x.meal||'col'))} · in alternativa a: ${(x.addTo||[]).map(t=>{const m=mealTypes(x.meal||'col');return esc(m.get(t)||t);}).join(', ')||'—'}${x.kcal100?` · ${x.kcal100} kcal/100 ${x.kcalBase==='ml'?'ml':'g'}${x.kcalSrc==='ai'?' (stima AI)':''}`:''}</small></span><button class="btn line sm" data-pxdel="${i}" aria-label="Togli">🗑️</button></div>`).join('');
+ const opts=pxOpts(), mopts=MEALS.filter(([mk])=>mealTypes(mk).size).map(([mk,mn,ic])=>`<option value="${mk}" ${mk===pxMeal?'selected':''}>${ic||''} ${esc(mn)}</option>`).join('');
  $('#prefEd').innerHTML=`<div class="setrow"><label for="pName">Il tuo nome <small>(compare nel titolo della pagina)</small></label><input id="pName" maxlength="40" value="${esc(PD.name||'')}" placeholder="facoltativo"></div>
   <h4 class="sub">🛒 Spesa: quale prodotto scegliere</h4>
   <p class="hint">Vale per gli alimenti con più alternative, quando nel Piano non ne hai spuntata una.</p>
   ${rows||'<p class="hint">Il piano attivo non ha alimenti con alternative.</p>'}
-  <h4 class="sub">☕ Aggiunte a colazione</h4>
-  <p class="hint">Un alimento che vuoi avere sempre come alternativa a colazione. La quantità viene calcolata per dare le stesse calorie, in media, delle altre alternative.</p>
+  <h4 class="sub">➕ Aggiunte ai pasti</h4>
+  <p class="hint">Un alimento che vuoi avere sempre come alternativa in un pasto. La quantità viene calcolata per dare le stesse calorie, in media, delle altre alternative.</p>
   ${xs||'<p class="hint">Nessuna aggiunta.</p>'}
   ${ct.size?`<details class="off"><summary>➕ Aggiungi un alimento</summary><div class="pxform">
    <input id="pxN" data-sug autocomplete="off" placeholder="Nome (es. Fette biscottate integrali)" maxlength="60">
    <div class="pxk"><input id="pxK" type="number" min="1" max="900" placeholder="kcal per 100 g"><button type="button" class="btn line sm" id="pxAI">✨ Stima con AI</button></div>
    <p class="hint" id="pxKi" hidden></p>
-   <p class="hint">Mettilo come alternativa a (la prima voce presente quel giorno):</p><div class="pxt">${opts}</div>
+   <div class="pxm"><label for="pxM">Aggiungilo a</label><select id="pxM">${mopts}</select></div>
+   <p class="hint">come alternativa a (la prima voce presente quel giorno):</p><div class="pxt">${opts}</div>
    <select id="pxC">${CAT_ORDER.map(c=>`<option ${c==='Colazione e dolci'?'selected':''}>${c}</option>`).join('')}</select>
    <button type="button" class="btn sm" id="pxAdd">Aggiungi</button></div></details>`:''}
   <div class="pbar"><button class="btn" id="pSave" ${pdDirty?'':'disabled'}>💾 Salva preferenze</button>${pdDirty?'<button class="btn line sm" id="pUndo">Annulla modifiche</button>':''}<button class="btn ghost sm" id="pReset">Ripristina le predefinite</button></div>
@@ -952,19 +955,23 @@ $('#prefEd').addEventListener('change',e=>{const el=e.target, d=el.dataset, T=pl
   const nl=el.checked?[...list,d.n]:list.filter(n=>n!==d.n);
   if(!pdRotSet(t,names,nl)){el.checked=true;toast('Lascia almeno un prodotto');return;}pdTouch();}
 });
+/* reparto della spesa proposto: quello della voce scelta (si può cambiare) */
+$('#prefEd').addEventListener('change',e=>{const el=e.target,c=$('#pxC');
+ if(el.id==='pxM'){pxMeal=el.value;const w=$('#prefEd .pxt');if(w)w.innerHTML=pxOpts();if(c)c.value=pxMeal==='col'?'Colazione e dolci':'Altro';}
+ if(el.dataset.pxt&&el.checked&&c&&CAT_ORDER.includes(SHOP_CAT[el.dataset.pxt]))c.value=SHOP_CAT[el.dataset.pxt];});
 $('#prefEd').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset;
  if(d.pup){e.preventDefault();const t=d.pup,names=[...planTypes()[t].names],l=rotList(t,names),i=+d.i;[l[i-1],l[i]]=[l[i],l[i-1]];pdRotSet(t,names,l);pdTouch();}
  if(d.pxdel){PD.breakfastExtras.splice(+d.pxdel,1);pdTouch();}
  if(b.id==='pxAdd'){const n=$('#pxN').value.trim(),k=+$('#pxK').value,to=$$('[data-pxt]').filter(x=>x.checked).map(x=>x.dataset.pxt);
   if(!n){toast('Scrivi il nome');return;}if(!to.length){toast('Scegli a cosa farlo da alternativa');return;}
-  if(PD.breakfastExtras.some(x=>x.name.toLowerCase()===n.toLowerCase())){toast('C\'è già');return;}
+  if(PD.breakfastExtras.some(x=>x.name.toLowerCase()===n.toLowerCase()&&(x.meal||'col')===pxMeal)){toast('C\'è già');return;}
   {const T=planTypes();if(to.some(t=>T[t]&&[...T[t].names].some(x=>x.toLowerCase()===n.toLowerCase()))){toast('È già tra le alternative del piano');return;}}
   const known=typeof KCAL[n]==='number';
   if(!known&&!(k>0)){const m=foodBest(n);if(m&&typeof m.k==='number'&&m.k>0){$('#pxK').value=m.k;const x=$('#pxKi');x.hidden=false;x.textContent=`📚 Dalla banca dati: ${m.k} kcal per 100 ${m.u==='ml'?'ml':'g'} (${m.n}). Controlla e premi di nuovo Aggiungi.`;return;}
    if(SY&&SY.signedIn()){pxEstimate(n,true);return;}toast('Non è nella banca dati: scrivi le kcal per 100 g dall\'etichetta (o accedi con Google per la stima AI)');return;}
-  const short=n.split(' ').slice(0,2).join(' ');
+  const short=n.split(' ').slice(0,2).join(' ').replace(/\s+(di|da|al|alla|allo|ai|con|e|in)$/i,'');
   const ai=pxAI&&pxAI.for===n&&pxAI.kcal100===k;pxAI=null;
-  PD.breakfastExtras.push(Object.assign({name:n,cat:$('#pxC').value,addTo:to,labelSuffix:' o '+short.toLowerCase(),round:5},k>0&&!known?{kcal100:k}:{},k>0&&!known&&ai?{kcalSrc:'ai'}:{},k>0&&!known&&ai&&pxAI0==='ml'?{kcalBase:'ml'}:{}));pdTouch();}
+  PD.breakfastExtras.push(Object.assign({name:n,cat:$('#pxC').value,addTo:to},pxMeal!=='col'?{meal:pxMeal}:{},{labelSuffix:' o '+short.toLowerCase(),round:5},k>0&&!known?{kcal100:k}:{},k>0&&!known&&ai?{kcalSrc:'ai'}:{},k>0&&!known&&ai&&pxAI0==='ml'?{kcalBase:'ml'}:{}));pdTouch();}
  if(b.id==='pxAI'){const n=$('#pxN').value.trim();if(!n){toast('Scrivi prima il nome');return;}
   if(typeof KCAL[n]==='number'){toast(`L'app lo conosce già: ${KCAL[n]} kcal per 100 g`);return;}pxEstimate(n,false);}
  if(b.id==='pUndo'){pdInit();renderPrefEd();}

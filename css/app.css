@@ -415,3 +415,4 @@ html[data-theme=dark] #shopDays .chip.on{color:#0f1411}
 .row.free .fmenu>summary{cursor:pointer;font-weight:600;color:var(--acc);margin:6px 0}
 .row.free .fown{margin-top:10px}.row.free [data-freg]{margin-top:10px}
 .row.free .alts{padding:0;margin:0}.row.free .pill.on small{color:#fff;opacity:.85}
+.pxm{display:flex;gap:10px;align-items:center;font-size:14px}.pxm select{flex:1;min-width:0}
