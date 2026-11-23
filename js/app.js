@@ -1072,8 +1072,14 @@ document.addEventListener('click',e=>{
  if(b.dataset.cfdel){S.customFoods.splice(+b.dataset.cfdel,1);save();renderCalorie();}
  if(b.dataset.bfdel){const f=S.brandFoods[+b.dataset.bfdel];if(f&&confirm(`Togliere "${f.n}" dai tuoi prodotti? Le voci già scritte nel diario restano.`)){S.brandFoods.splice(+b.dataset.bfdel,1);save();renderFoodList();renderCalorie();}}
  if(b.dataset.offsave){const e=kOffR[+b.dataset.offsave];if(e){saveBrand(e);kOffR.splice(+b.dataset.offsave,1);toast('Salvato tra i tuoi prodotti');renderKTable();}}
+ if(b.dataset.bundo){const j=(S.brandFoods||[]).findIndex(f=>f.code===b.dataset.bundo),det=b.closest('details');
+  if(j>=0){const n=S.brandFoods[j].n;S.brandFoods.splice(j,1);save();renderFoodList();const i=det&&$('[data-on]',det);if(i&&i.value===n){i.value='';i._pick=null;$('[data-ok]',det).value='';i.dispatchEvent(new Event('input',{bubbles:true}));}}
+  const m=b.closest('.bsaved');if(m)m.remove();toast('Tolto dai tuoi prodotti');}
+ if(b.id==='bcSave'&&bcLast){saveBrand(bcLast);bcShow(bcLast,true);renderKTable();toast('Salvato tra i tuoi prodotti');}
  if(b.id==='bcScan')scanCode().then(c=>{if(c){$('#bcCode').value=c;bcLookup(c);}});
- if(b.dataset.oscan){const w=b.closest('details').querySelector('.dadd');scanCode().then(c=>c&&MARCA.byCode(c).then(e=>{if(!e){toast('Prodotto non trovato: scrivi nome e kcal');return;}const i=$('[data-on]',w);i.value=saveBrand(e);i._pick=i.value;i.dispatchEvent(new Event('input',{bubbles:true}));$('[data-oq]',w).focus();},er=>toast(offMsg(er))));}
+ if(b.dataset.oscan){const w=b.closest('details').querySelector('.dadd');scanCode().then(c=>c&&MARCA.byCode(c).then(e=>{if(!e){toast('Prodotto non trovato: scrivi nome e kcal');return;}const had=(S.brandFoods||[]).some(f=>f.code===e.code),i=$('[data-on]',w);i.value=saveBrand(e);i._pick=i.value;i.dispatchEvent(new Event('input',{bubbles:true}));
+  const det=w.closest('details');let m=$('.bsaved',det);if(!m){m=document.createElement('p');m.className='hint bsaved';b.before(m);}
+  m.innerHTML=had?`${esc(i.value)} era già tra i tuoi prodotti di marca.`:`L'ho salvato tra i tuoi prodotti di marca. <button class="lnk in" data-bundo="${esc(e.code)}">Annulla</button>`;$('[data-oq]',w).focus();},er=>toast(offMsg(er))));}
  if(b.id==='today'){S.day=todayIso();save();renderDays();renderPlan();setTab('piano');}
  if(b.id==='allDays'){S.shopDays=DAYS.map(d=>d.k);save();renderShop();}
  if(b.id==='noDays'){S.shopDays=[];save();renderShop();}
@@ -1146,14 +1152,17 @@ document.addEventListener('foodpick',e=>{const i=e.target,f=e.detail;
  if(i.id==='cfN'&&typeof f.k==='number'){$('#cfK').value=f.k;}
  if(i.id==='pxN'&&typeof f.k==='number'){$('#pxK').value=f.k;pxAI=null;const x=$('#pxKi');if(x){x.hidden=false;x.textContent=`📚 Dalla banca dati: ${f.k} kcal per 100 ${f.u==='ml'?'ml':'g'} (${f.n}). Correggi se hai l'etichetta.`;}}});
 /* ====== CODICE A BARRE (Open Food Facts) ====== */
+/* prodotto letto con il codice a barre nella scheda Calorie: lo salvi tu con il tasto */
+let bcLast=null;
+function bcShow(e,saved){const f=saved&&(S.brandFoods||[]).find(x=>x.code===e.code)||e;
+ $('#bcRes').innerHTML=`<div class="krow"><span>${esc(f.n)}<small>${esc(macros(f))}</small></span><b>${esc(perE(f))}</b></div>`+(saved?`<p class="hint">✓ È tra i tuoi prodotti di marca: lo trovi nel diario, nel convertitore e nella tabella.</p>`:`<button class="btn line sm" id="bcSave">＋ Salva tra i miei prodotti</button><p class="hint">Salvalo se lo usi: poi lo trovi nel diario, nel convertitore e nella tabella, anche offline.</p>`)+`<p class="hint">Valori di Open Food Facts, inseriti dagli utenti: se l'etichetta dice altro, vale l'etichetta.</p>`;}
 async function bcLookup(code){const r=$('#bcRes');code=String(code||'').replace(/\D/g,'');
  if(code.length<8){r.innerHTML='<p class="hint">Il codice a barre ha 8 o 13 cifre: lo trovi sotto le barre.</p>';return;}
  r.innerHTML='<p class="hint">Cerco il prodotto…</p>';
  try{const e=await MARCA.byCode(code);
   if(!e){r.innerHTML=`<p class="hint">Il codice ${esc(code)} non c'è in Open Food Facts, oppure mancano le kcal. Aggiungilo qui sotto come alimento tuo con le kcal dell'etichetta.</p>`;$('#cfN').focus();return;}
-  const had=(S.brandFoods||[]).some(f=>f.code===e.code),n=saveBrand(e);
-  r.innerHTML=`<div class="krow"><span>${esc(n)}<small>${esc(macros(e))}</small></span><b>${esc(perE(e))}</b></div><p class="hint">${had?'Era già tra i tuoi prodotti.':'Salvato tra i tuoi prodotti di marca'}: lo trovi nel diario, nel convertitore e nella tabella. Se l'etichetta dice altro, vale l'etichetta.</p>`;
-  renderKTable();}catch(er){r.innerHTML=`<p class="hint">${esc(offMsg(er))}</p>`;}}
+  bcLast=e;bcShow(e,(S.brandFoods||[]).some(f=>f.code===e.code));
+  }catch(er){r.innerHTML=`<p class="hint">${esc(offMsg(er))}</p>`;}}
 $('#bcForm').addEventListener('submit',e=>{e.preventDefault();bcLookup($('#bcCode').value);});
 /* fotocamera: restituisce il codice letto, o null se chiudi */
 function scanCode(){const d=$('#scan'),v=$('#scVid'),msg=$('#scMsg');
