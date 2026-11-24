@@ -13,8 +13,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>La mia dieta</title>
 <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
-<link rel="stylesheet" href="css/app.css?v=32">
-<script src="js/theme-head.js?v=32"></script>
+<link rel="stylesheet" href="css/app.css?v=34">
+<script src="js/theme-head.js?v=34"></script>
 </head>
 <body>
 <div class="top"><div class="wrap">
@@ -104,7 +104,7 @@
   <div class="panel set" id="planSet"><h3>📋 Piano alimentare</h3>
    <div id="planCur"></div>
    <div id="planList"></div>
-   <div class="bkrow"><button class="btn sm" id="planImp">⬆️ Carica da file</button><button class="btn sm" id="planPdf">📄 Carica da PDF</button><button class="btn line sm" id="planExp">⬇️ Esporta il piano attivo</button><input type="file" id="planFile" accept=".json,application/json" hidden><input type="file" id="pdfFile" accept=".pdf,application/pdf" hidden></div>
+   <div class="bkrow"><button class="btn sm" id="planImp">⬆️ Carica file (JSON o PDF)</button><button class="btn sm" id="planPdf">📄 Carica da PDF</button><button class="btn line sm" id="planExp">⬇️ Esporta il piano attivo</button><input type="file" id="planFile" accept=".json,.pdf,application/json,application/pdf" hidden><input type="file" id="pdfFile" accept=".pdf,application/pdf" hidden></div>
    <p class="hint">Puoi caricare il PDF del nutrizionista (lo legge l'AI, serve l'accesso con Google; prima di salvare controlli tutto) oppure un file nel formato dell'app. Ti chiedo da quando inizia: il piano precedente vale fino al giorno prima e resta in archivio, con le sue preferenze. Il diario non cambia.</p>
    <h3 class="sub2">🧩 Preferenze e piano</h3>
    <div id="prefCheck"></div>
@@ -157,7 +157,7 @@
  <button class="btn line" id="scDevice">Usa quelli di questo dispositivo</button>
  <p class="hint">Sostituisce i dati nel cloud con quelli di qui; quelli presenti solo nel cloud restano.</p>
  <p class="hint">Nel dubbio, fai prima un backup in ⚙️ Impostazioni.</p></div></dialog>
-<dialog id="scan"><div class="scanbox"><h3>📷 Codice a barre</h3><div class="scview"><video id="scVid" playsinline muted autoplay></video><i></i></div><p class="hint" id="scMsg"></p><button class="btn line" id="scClose">Chiudi</button></div></dialog>
+<dialog id="scan"><div class="scanbox"><h3>📷 Codice a barre</h3><div class="scview"><video id="scVid" playsinline muted autoplay></video><i></i></div><p class="hint" id="scMsg"></p><div class="bkrow"><button class="btn sm" id="scPhoto">📸 Scatta una foto</button><button class="btn line" id="scClose">Chiudi</button></div><input type="file" id="scFile" accept="image/*" capture="environment" hidden></div></dialog>
 <dialog id="calDlg"><div class="cdbox"><h3 id="cdT"></h3><div class="tools cdq"><button class="btn line sm" data-cdq="0">Oggi</button><button class="btn line sm" data-cdq="1">Domani</button><input type="date" id="cdDate" aria-label="Data di inizio"></div><div class="tools cdq" id="cdToRow" hidden><span class="hint">fino al</span><input type="date" id="cdTo" aria-label="Data di fine (facoltativa)"><button class="btn line sm" id="cdToX">Senza fine</button></div><p class="hint" id="cdInfo"></p><p class="hint" id="cdHint">Non serve una data di fine: il piano vale finché non ne inizia un altro.</p><div class="tools"><button class="btn line sm" id="cdNo">Annulla</button><button class="btn sm" id="cdOk">Conferma</button></div></div></dialog>
 <dialog id="planView"><div class="pvbox" id="pvBody"></div></dialog>
 <dialog id="pdfImp"><div class="pibox" id="piBody"></div></dialog>
@@ -167,7 +167,7 @@
  <div class="ract"><button class="btn" id="rAgain">🔄 Un'altra idea</button><button class="btn ghost" id="rAI">✨ Chiedi all'AI</button><button class="btn ghost" id="rCopy">Copia</button><button class="btn line" id="rClose">Chiudi</button></div>
 </dialog>
 <div class="toast" id="toast"></div>
-<script type="module" src="js/app.js?v=32"></script>
+<script type="module" src="js/app.js?v=34"></script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){navigator.serviceWorker.register('sw.js').catch(()=>{});
  /* versione nuova appena installata: ricarico una volta, così non resta un misto di file vecchi e nuovi */
  if(navigator.serviceWorker.controller)navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!sessionStorage.getItem('dietaApp.swr')){sessionStorage.setItem('dietaApp.swr','1');location.reload();}});

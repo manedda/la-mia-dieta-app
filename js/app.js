@@ -177,7 +177,7 @@ S.day=todayIso();
 const swapOpts=(sel,own,iso)=>ctxAt(iso).DAYS.map(d=>`<option value="${esc(d.k)}" ${d.k===sel?'selected':''}>${esc(d.n)}${d.k===own?' (il suo)':''}</option>`).join('');
 
 /* ====== PIANO (tutti gli alimenti visibili, si spunta quello scelto) ====== */
-const compK=(c,sel)=>{const ks=(sel!=null&&sel!==''?[c.opts[+sel]]:c.opts).map(optK).filter(k=>k!=null);return ks.length?[Math.min(...ks),Math.max(...ks)]:[0,0];};
+const compK=(c,sel)=>{const ks=(sel!=null&&sel!==''&&c.opts[+sel]?[c.opts[+sel]]:c.opts).map(optK).filter(k=>k!=null);return ks.length?[Math.min(...ks),Math.max(...ks)]:[0,0];};
 const rFmt=([a,b])=>Math.round(a)===Math.round(b)?`${Math.round(a)} kcal`:`${Math.round(a)}–${Math.round(b)} kcal`;
 /* ====== PASTO LIBERO: stima delle kcal con piatti tipici (valori medi per porzione da pizzeria, fast food o ristorante) ======
    S.freeSel["data|pasto"] = [{n, k}] = cosa pensi di mangiare; se non scegli niente vale FREE_DEF */
@@ -212,7 +212,7 @@ function renderPlan(){
  const dr=dayRange(d,iso), log=dLog(iso), got=Math.round(log.reduce((s,x)=>s+(+x.k||0),0)), mid=(dr[0]+dr[1])/2, pct=mid?Math.min(100,Math.round(got/mid*100)):0;
  $('#dayKcal').innerHTML=`<b>≈ ${rFmt(dr)}</b><small>previste${hasFree?', con il pasto libero stimato':''}</small>`;
  const rg=$('#dayRing');rg.dataset.wgo=iso;rg.style.setProperty('--p',fut?0:pct);rg.innerHTML=`<i>${fut||!got?'<svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z"/><path d="M9 9h6M9 13h6"/></svg>':pct+'%'}</i>`;
- $('#dayDiary').textContent=fut?'Giorno futuro: le scelte servono per la spesa':got?`Nel diario: ${got} kcal`:log.some(e=>e.skip)?'Nel diario: pasti saltati':'Diario: niente segnato';
+ $('#dayDiary').textContent=fut?(got?`Fuori piano: ${got} kcal`:'Giorno futuro: le scelte servono per la spesa'):got?`Nel diario: ${got} kcal`:log.some(e=>e.skip)?'Nel diario: pasti saltati':'Diario: niente segnato';
  $('#planLead').textContent=fut?'Giorno futuro: tocca un alimento per sceglierlo, o un\'alternativa sotto per cambiarlo. Il cerchio tratteggiato è il suggerito, quello che usano ricetta e spesa finché non scegli.':'Spunta gli alimenti che hai mangiato: tocca quello sopra, oppure un\'alternativa se hai mangiato quella. Toccalo di nuovo per toglierlo. Quello che non spunti non entra nel diario.';
  $('#meals').innerHTML=MEALS.map(([mk,mn,ic])=>{
   const comps=d.meals[mk]||[];
@@ -222,7 +222,8 @@ function renderPlan(){
    if(c.free)return freeRow(iso,mk,fut);
    /* oggi e giorni passati: la spunta = l'hai mangiato (voce nel diario); giorni futuri: la spunta = scelto per la spesa */
    const key=pkey(iso,mk,i), sel=S.picks[key], ate=fut?null:log.find(e=>e.pl===`${mk}|${i}`&&!e.skip), sug=isSel(sel)?-1:(AP[key]??-1);
-   const sh=ate?(ate.j!=null?+ate.j:pickOf(key,c,AP)):(isSel(sel)?+sel:sug), ck=compK(c,ate?sh:sel);mK[0]+=ck[0];mK[1]+=ck[1];
+   let sh=ate?(ate.j!=null?+ate.j:pickOf(key,c,AP)):(isSel(sel)?+sel:sug);if(sh>=0&&!c.opts[sh])sh=sug>=0&&c.opts[sug]?sug:0; /* voce del diario segnata con un altro piano */
+   const ck=compK(c,ate?sh:sel);mK[0]+=ck[0];mK[1]+=ck[1];
    const tip=on=>fut?'':` title="${on?'Mangiato: tocca per toglierlo dal diario':'Tocca se l\'hai mangiato'}"`;
    const inner=(o,tag)=>{const k=optK(o);return`<span class="on1">${esc(o[0])}${tag||''}</span><span class="od">${esc(optDetail(c,o))}${k!=null?` · ${Math.round(k)}`:''}</span>`;};
    if(c.opts.length===1){const o=c.opts[0],nt=c.note?`<small>${esc(c.note)}</small>`:'';
@@ -231,14 +232,14 @@ function renderPlan(){
    const main=sh>=0&&c.opts[sh]?`<button class="opt main ${on?'on':''}${sh===sug&&!on?' sug':''}" ${fut&&sh===sug?'title="Suggerito: è quello che trovi nella lista della spesa. Toccalo per confermarlo."':tip(on)} data-pick="${key}" data-j="${sh}" aria-pressed="${on}"><i class="ck">${on?CKS:''}</i>${inner(c.opts[sh],c.list?` <em class="tag">${esc(c.list)}</em>`:'')}</button>`:'';
    return`<div class="row" title="${esc(c.label)}">${main}<div class="alts">${c.opts.map((o,j)=>{if(j===sh)return'';const k=optK(o);return`<button class="pill" data-pick="${key}" data-j="${j}" aria-pressed="false" title="${fut?'':'L\'ho mangiato al posto di quello sopra · '}${esc(optDetail(c,o))}${k!=null?` · ${Math.round(k)} kcal`:''}">${esc(o[0])}${k!=null?`<small>${Math.round(k)}</small>`:''}</button>`;}).join('')}</div></div>`;
   }).join('');
-  return`<article class="meal ${free?'is-free':''}"><header><div><h3><span>${esc(ic||'')}</span>${esc(mn)}</h3>${free?'':`<small class="mk">${rFmt(mK)} · ${nAlt?'scegli 1 per voce':nIt===1?'1 alimento':nIt+' alimenti'}</small>`}</div>${free?'':`<button class="btn ghost sm" data-recipe="${mk}">✨ Ricetta</button>`}</header>${rows}${fut?'':mealLog(iso,mk,free,log)}</article>`;
+  return`<article class="meal ${free?'is-free':''}"><header><div><h3><span>${esc(ic||'')}</span>${esc(mn)}</h3>${free?'':`<small class="mk">${rFmt(mK)} · ${nAlt?'scegli 1 per voce':nIt===1?'1 alimento':nIt+' alimenti'}</small>`}</div>${free?'':`<button class="btn ghost sm" data-recipe="${mk}">✨ Ricetta</button>`}</header>${rows}${mealLog(iso,mk,free,log,fut)}</article>`;
  }).join('');
 }
 
 /* piede del pasto nel Piano: stato nel diario, alimenti fuori piano */
-function mealLog(iso,mk,free,log){
+function mealLog(iso,mk,free,log,fut){
  const ents=log.map((e,i)=>({...e,i})).filter(e=>e.m===mk&&!e.pl&&!e.skip), eat=log.filter(e=>e.m===mk&&e.pl&&!e.skip), pk=eat.reduce((a,e)=>a+(+e.k||0),0), skip=log.some(e=>e.m===mk&&e.skip), nr=(dayOf(iso).meals[mk]||[]).filter(c=>!c.free).length;
- const head=free?(ents.length?`<span class="ok">✓ Nel diario · ${Math.round(ents.reduce((a,e)=>a+(+e.k||0),0))} kcal</span><button class="btn line sm" data-mclr="${mk}">Togli tutto</button>`:''):skip?`<span class="sk">Pasto saltato: non conta nel diario</span><button class="btn line sm" data-mclr="${mk}">Annulla</button>`
+ const head=fut?'':free?(ents.length?`<span class="ok">✓ Nel diario · ${Math.round(ents.reduce((a,e)=>a+(+e.k||0),0))} kcal</span><button class="btn line sm" data-mclr="${mk}">Togli tutto</button>`:''):skip?`<span class="sk">Pasto saltato: non conta nel diario</span><button class="btn line sm" data-mclr="${mk}">Annulla</button>`
   :eat.length?`<span class="ok">✓ ${eat.length} di ${nr} nel diario · ${Math.round(pk)} kcal</span>${eat.length<nr?`<button class="btn line sm" data-mplan="${mk}">Spunta tutto</button>`:''}<button class="btn line sm" data-mclr="${mk}">Togli tutto</button>`
   :`<span class="no">${ents.length?'Segnato a mano':'Niente spuntato'}</span><button class="btn line sm" data-mplan="${mk}">✓ Tutto il pasto</button><button class="btn line sm" data-mskip="${mk}">Saltato</button>`;
  return`<div class="mlog">${head?`<div class="mst">${head}</div>`:''}
@@ -291,7 +292,7 @@ function renderDiary(){
    ${groups?`<div class="dadd" data-meal="${mk}"><select data-dsel><option value="">Alimento del piano…</option>${groups}</select><input type="number" inputmode="decimal" min="0" step="any" data-dq placeholder="q.tà"><span class="u" data-du></span><button class="btn sm" data-dadd="${mk}">+</button></div>`:''}
    <details class="off"><summary>＋ Alimento fuori piano</summary><div class="dadd" data-meal="${mk}"><input data-on data-sug placeholder="Nome (es. Pizza margherita)" autocomplete="off"><input type="number" inputmode="decimal" min="0" step="any" data-oq placeholder="g"><input type="number" inputmode="decimal" min="0" step="any" data-ok placeholder="kcal"><button class="btn sm" data-oadd="${mk}">+</button></div><small class="hint" data-oh>${OH0}</small><button class="lnk" data-oscan>📷 Leggi il codice a barre</button></details></article>`;
  }).join('');
- const days=Object.keys(S.diary).filter(k=>S.diary[k].some(e=>!e.x)).sort().reverse().slice(0,14);
+ const days=Object.keys(S.diary).filter(k=>k<=todayIso()&&S.diary[k].some(e=>!e.x)).sort().reverse().slice(0,14);
  $('#dHist').innerHTML=days.length?days.map(k=>`<button class="chip ${k===diaryDate?'on':''}" data-dgo="${k}">${dateOf(k).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'})} · ${Math.round(S.diary[k].reduce((a,e)=>a+(+e.k||0),0))}</button>`).join(''):'<span class="hint">Ancora nessun giorno registrato.</span>';
 }
 function diaryAdd(e,iso=diaryDate){(S.diary[iso]=S.diary[iso]||[]).push(e);snapDay(iso);save();rerender();}
@@ -1156,7 +1157,7 @@ document.addEventListener('click',e=>{
  if(b.id==='planImp')$('#planFile').click();
  if(b.id==='planPdf')pdfClick();
  if(b.id==='wIn'){acAction('acIn');return;}
- if(b.id==='wPlan'){setTab('impost');$('#planSet').scrollIntoView({behavior:'smooth'});$('#planFile').click();}
+ if(b.id==='wPlan'){setTab('impost');const p=$('#planSet');p.scrollIntoView({behavior:'smooth',block:'start'});p.classList.add('flash');setTimeout(()=>p.classList.remove('flash'),2200);toast('Carica il file del piano: JSON oppure PDF');}
  if(b.id==='planExp')exportPlan();
  if(b.closest('[data-fiso]')&&(b.dataset.fadd!=null||b.dataset.fdel!=null||b.dataset.fown!=null||b.dataset.freg!=null)){freeAct(b);return;}
  if(b.dataset.pres)resumePlan(b.dataset.pres);
@@ -1233,7 +1234,7 @@ $('#addForm').addEventListener('submit',e=>{e.preventDefault();const n=$('#addNa
 $('#recipe').addEventListener('click',e=>{if(e.target.id==='recipe')e.target.close();});
 let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),1800);}
 $('#addCat').innerHTML=CAT_ORDER.map(c=>`<option ${c==='Altro'?'selected':''}>${c}</option>`).join('');
-document.addEventListener('change',e=>{if(e.target.id==='bkFile'&&e.target.files[0]){importBackup(e.target.files[0]);e.target.value='';}if(e.target.id==='planFile'&&e.target.files[0]){importPlan(e.target.files[0]);e.target.value='';}if(e.target.id==='pdfFile'&&e.target.files[0]){pdfStart(e.target.files[0]);e.target.value='';}});
+document.addEventListener('change',e=>{if(e.target.id==='bkFile'&&e.target.files[0]){importBackup(e.target.files[0]);e.target.value='';}if(e.target.id==='planFile'&&e.target.files[0]){const f=e.target.files[0];e.target.value='';if(/\.pdf$/i.test(f.name)||f.type==='application/pdf'){if(!SY||!SY.signedIn())toast('Per leggere un PDF con l\'AI accedi con Google (Impostazioni → Account)');else pdfStart(f);}else importPlan(f);}if(e.target.id==='pdfFile'&&e.target.files[0]){pdfStart(e.target.files[0]);e.target.value='';}});
 document.addEventListener('input',e=>{const s=e.target;
  if(s.matches('[data-on],[data-oq]')){const w=s.closest('.dadd'),n=$('[data-on]',w).value.trim(),h=$('[data-oh]',w.parentNode);
   let fn=kGet(n)!=null?n:null,m=null;if(!fn&&n.length>=3){m=foodBest(n);if(m)fn=m.n;}
@@ -1284,18 +1285,30 @@ async function bcLookup(code){const r=$('#bcRes');code=String(code||'').replace(
   }catch(er){r.innerHTML=`<p class="hint">${esc(offMsg(er))}</p>`;}}
 $('#bcForm').addEventListener('submit',e=>{e.preventDefault();bcLookup($('#bcCode').value);});
 /* fotocamera: restituisce il codice letto, o null se chiudi */
-function scanCode(){const d=$('#scan'),v=$('#scVid'),msg=$('#scMsg');
- if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast(isSecureContext?'Questo browser non può usare la fotocamera: scrivi il codice a mano':'La fotocamera funziona solo dal sito sicuro (https): scrivi il codice a mano');return Promise.resolve(null);}
- msg.textContent='Apro la fotocamera…';d.showModal();
- return new Promise(res=>{let stop=false,stream=null;
-  const end=code=>{if(stop)return;stop=true;if(stream)stream.getTracks().forEach(t=>t.stop());v.srcObject=null;if(d.open)d.close();res(code);};
+function scanCode(){const d=$('#scan'),v=$('#scVid'),msg=$('#scMsg'),cam=!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
+ msg.textContent=cam?'Apro la fotocamera…':'Qui la fotocamera dal vivo non va: scatta una foto alle barre, oppure chiudi e scrivi il codice a mano.';d.showModal();
+ return new Promise(res=>{let stop=false,stream=null;const detP=MARCA.detector();detP.catch(()=>{});
+  const end=code=>{if(stop)return;stop=true;if(stream)stream.getTracks().forEach(t=>t.stop());v.srcObject=null;$('#scFile').onchange=null;if(d.open)d.close();res(code);};
+  const cv=document.createElement('canvas'),cx=cv.getContext('2d',{willReadFrequently:true});
+  /* immagine (fotogramma o foto) ridotta su un canvas: così il lettore funziona uguale su ogni browser */
+  const read=async(src,w,h,max)=>{const det=await detP,sc=Math.min(1,max/Math.max(w,h));cv.width=Math.round(w*sc);cv.height=Math.round(h*sc);cx.drawImage(src,0,0,cv.width,cv.height);
+   const r=await det.detect(cv),c=r.find(x=>/^\d{8,14}$/.test(x.rawValue));return c?c.rawValue:null;};
+  const got=c=>{if(navigator.vibrate)navigator.vibrate(60);end(c);};
   d.onclose=()=>end(null);$('#scClose').onclick=()=>end(null);
-  (async()=>{try{const det=await MARCA.detector();
+  $('#scPhoto').onclick=()=>$('#scFile').click();
+  $('#scFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;msg.textContent='Leggo la foto…';
+   try{const im=await createImageBitmap(f);let c=await read(im,im.width,im.height,1600);if(!c)c=await read(im,im.width,im.height,900);
+    if(c)got(c);else msg.textContent='Non trovo il codice nella foto: riprova più vicino, dritto e a fuoco, oppure scrivi il codice a mano.';}
+   catch(er){msg.textContent='Non riesco a leggere la foto: riprova, oppure scrivi il codice a mano.';}};
+  if(!cam)return;
+  (async()=>{try{
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280}},audio:false});
     if(stop){stream.getTracks().forEach(t=>t.stop());return;}
-    v.srcObject=stream;await v.play();msg.textContent='Inquadra le barre e tieni fermo il telefono, a 10-20 cm.';
-    const loop=async()=>{if(stop)return;try{const r=await det.detect(v),c=r.find(x=>/^\d{8,14}$/.test(x.rawValue));if(c){if(navigator.vibrate)navigator.vibrate(60);end(c.rawValue);return;}}catch(e){}setTimeout(loop,200);};loop();
-   }catch(e){msg.textContent=e&&e.name==='NotAllowedError'?'Non ho il permesso di usare la fotocamera: consentilo nelle impostazioni del browser, oppure chiudi e scrivi il codice a mano.':'Non riesco ad aprire la fotocamera: chiudi e scrivi il codice a mano.';}})();
+    v.srcObject=stream;try{await v.play();}catch(e){}
+    msg.textContent='Inquadra le barre e tieni fermo il telefono, a 10-20 cm. Se non lo legge, scatta una foto.';
+    try{await detP;}catch(e){msg.textContent='Non riesco a caricare il lettore dei codici (connessione?): scrivi il codice a mano.';return;}
+    const loop=async()=>{if(stop)return;try{if(v.readyState>=2&&v.videoWidth){const c=await read(v,v.videoWidth,v.videoHeight,1280);if(c){got(c);return;}}}catch(e){}setTimeout(loop,150);};loop();
+   }catch(e){msg.textContent=e&&e.name==='NotAllowedError'?'Non ho il permesso di usare la fotocamera: consentilo nelle impostazioni (su iPhone: Impostazioni → Safari → Fotocamera), oppure scatta una foto o scrivi il codice a mano.':'Non riesco ad aprire la fotocamera: scatta una foto alle barre, oppure scrivi il codice a mano.';}})();
  });}
 $('#cfForm').addEventListener('submit',e=>{e.preventDefault();const n=$('#cfN').value.trim(),k=+$('#cfK').value;if(!n||!k){toast('Scrivi nome e kcal per 100 g');return;}S.customFoods=(S.customFoods||[]).filter(f=>f.n!==n);S.customFoods.push({n,k});$('#cfN').value='';$('#cfK').value='';save();renderCalorie();toast('Alimento aggiunto');});
 applyUI(S.ui);

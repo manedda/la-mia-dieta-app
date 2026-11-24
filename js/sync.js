@@ -50,8 +50,11 @@ function mergeDoc(n,a,b){
  if(n==='prefs'&&x.legacy&&!y.legacy)return b; /* copia automatica dal vecchio file: vince quella nel cloud */
  if(n==='plans'){const ids=new Set(x.list.map(r=>r.id)),list=[...x.list,...y.list.filter(r=>!ids.has(r.id))];
   /* calendario: unisco gli inizi; nello stesso giorno vince questo dispositivo */
-  const days=new Set((x.cal||[]).map(e=>e.from)),cal=[...(x.cal||[]),...(y.cal||[]).filter(e=>!days.has(e.from))].sort((a,b)=>a.from.localeCompare(b.from));
-  return JSON.stringify({active:x.active,list,...(cal.length?{cal}:{})});}
+  /* ma il piano di esempio (messo da solo al primo avvio) cede sempre a un piano vero */
+  const ex=id=>{const r=list.find(r=>r.id===id);return!!r&&r.src==='data/piano-esempio.json';};
+  const yc=(y.cal||[]).filter(e=>!ex(e.plan)),xc=(x.cal||[]).filter(e=>!(ex(e.plan)&&yc.some(f=>f.from===e.from)));
+  const days=new Set(xc.map(e=>e.from)),cal=[...xc,...(y.cal||[]).filter(e=>!days.has(e.from))].sort((a,b)=>a.from.localeCompare(b.from));
+  return JSON.stringify({active:ex(x.active)&&y.active&&!ex(y.active)?y.active:x.active,list,...(cal.length?{cal}:{})});}
  if(n==='main'){/* vince questo dispositivo, ma unisco le raccolte per non perdere aggiunte fatte altrove */
   ['picks','pantry','checked','hidden','dplan','shopLog'].forEach(k=>{if(y[k]&&typeof y[k]==='object')x[k]={...y[k],...(x[k]||{})};});
   const uni=(k,key)=>{const a=x[k]||[],seen=new Set(a.map(key));x[k]=[...a,...(y[k]||[]).filter(e=>!seen.has(key(e)))];};
