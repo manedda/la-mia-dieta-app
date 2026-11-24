@@ -13,8 +13,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>La mia dieta</title>
 <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png">
-<link rel="stylesheet" href="css/app.css?v=34">
-<script src="js/theme-head.js?v=34"></script>
+<link rel="stylesheet" href="css/app.css?v=35">
+<script src="js/theme-head.js?v=35"></script>
 </head>
 <body>
 <div class="top"><div class="wrap">
@@ -104,7 +104,7 @@
   <div class="panel set" id="planSet"><h3>📋 Piano alimentare</h3>
    <div id="planCur"></div>
    <div id="planList"></div>
-   <div class="bkrow"><button class="btn sm" id="planImp">⬆️ Carica file (JSON o PDF)</button><button class="btn sm" id="planPdf">📄 Carica da PDF</button><button class="btn line sm" id="planExp">⬇️ Esporta il piano attivo</button><input type="file" id="planFile" accept=".json,.pdf,application/json,application/pdf" hidden><input type="file" id="pdfFile" accept=".pdf,application/pdf" hidden></div>
+   <div class="bkrow"><button class="btn sm" id="planImp">⬆️ Carica file (JSON o PDF)</button><button class="btn sm" id="planPdf">📄 Converti PDF</button><button class="btn line sm" id="planExp">⬇️ Esporta il piano attivo</button><input type="file" id="planFile" accept=".json,.pdf,application/json,application/pdf" hidden><input type="file" id="pdfFile" accept=".pdf,application/pdf" hidden></div>
    <p class="hint">Puoi caricare il PDF del nutrizionista (lo legge l'AI, serve l'accesso con Google; prima di salvare controlli tutto) oppure un file nel formato dell'app. Ti chiedo da quando inizia: il piano precedente vale fino al giorno prima e resta in archivio, con le sue preferenze. Il diario non cambia.</p>
    <h3 class="sub2">🧩 Preferenze e piano</h3>
    <div id="prefCheck"></div>
@@ -167,7 +167,7 @@
  <div class="ract"><button class="btn" id="rAgain">🔄 Un'altra idea</button><button class="btn ghost" id="rAI">✨ Chiedi all'AI</button><button class="btn ghost" id="rCopy">Copia</button><button class="btn line" id="rClose">Chiudi</button></div>
 </dialog>
 <div class="toast" id="toast"></div>
-<script type="module" src="js/app.js?v=34"></script>
+<script type="module" src="js/app.js?v=35"></script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){navigator.serviceWorker.register('sw.js').catch(()=>{});
  /* versione nuova appena installata: ricarico una volta, così non resta un misto di file vecchi e nuovi */
  if(navigator.serviceWorker.controller)navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!sessionStorage.getItem('dietaApp.swr')){sessionStorage.setItem('dietaApp.swr','1');location.reload();}});

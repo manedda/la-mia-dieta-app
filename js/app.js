@@ -774,11 +774,36 @@ const piSave=()=>{try{const{raw,map,title,author,notes,file}=PI;localStorage.set
 const piDraft=()=>{try{return JSON.parse(localStorage.getItem(PI_KEY));}catch(e){return null;}};
 async function pdfClick(){
  const d=piDraft();
- if(d&&d.raw){if(confirm(`Hai una revisione in sospeso del PDF «${d.file}».\n\nRiprenderla? (Annulla = la scarti e scegli un altro PDF)`)){PM=PM||await import('./pdfimport.js');PI=d;piOpen.clear();piOpen.add(0);$('#pdfImp').showModal();renderPI();return;}
+ if(d&&d.raw){if(confirm(`Hai una revisione in sospeso del PDF «${d.file}».\n\nRiprenderla? (Annulla = la scarti e converti un altro PDF)`)){PM=PM||await import('./pdfimport.js');PI=d;piOpen.clear();piOpen.add(0);$('#pdfImp').showModal();renderPI();return;}
   localStorage.removeItem(PI_KEY);}
- if(!SY||!SY.signedIn()){toast('Per leggere un PDF con l\'AI accedi con Google (Impostazioni → Account)');return;}
- $('#pdfFile').click();
+ PM=PM||await import('./pdfimport.js');PI=null;
+ $('#piBody').innerHTML=`<h3>📄 Converti il PDF del piano</h3>
+ <p class="hint">Un'AI trascrive il PDF del nutrizionista nel formato dell'app. Usa la tua ChatGPT o Gemini: le istruzioni sono già pronte.</p>
+ <h4 class="sub">1 · Apri l'AI e allega il PDF</h4>
+ <div class="bkrow"><button class="btn sm" data-xai="gpt">💬 Apri ChatGPT</button><button class="btn sm" data-xai="gem">✨ Apri Gemini</button><button class="btn line sm" data-xai="copy">📋 Copia le istruzioni</button></div>
+ <p class="hint">ChatGPT si apre con le istruzioni già scritte: allega il PDF e invia. Su Gemini le istruzioni sono già copiate: tieni premuto nella casella, «Incolla», allega il PDF e invia.</p>
+ <details class="xp"><summary>Vedi le istruzioni</summary><pre>${esc(PM.EXT_PROMPT)}</pre></details>
+ <h4 class="sub">2 · Incolla qui la risposta</h4>
+ <textarea id="piPaste" rows="5" placeholder="Copia la risposta dell'AI (il blocco di codice) e incollala qui"></textarea>
+ <p class="hint" id="piErr" hidden></p>
+ <div class="pbar"><button class="btn" id="piCheck">Controlla e continua</button><button class="btn line sm" id="piStop">Chiudi</button></div>
+ <p class="hint xin">Oppure <button class="lnk" id="piInt">usa l'AI dell'app</button> (serve l'accesso con Google; poche letture al giorno).</p>`;
+ $('#pdfImp').showModal();
 }
+/* apre ChatGPT (istruzioni nel link) o Gemini (istruzioni negli appunti) */
+function xaiOpen(k){const p=PM.EXT_PROMPT;try{navigator.clipboard.writeText(p).catch(()=>{});}catch(e){}
+ if(k==='gpt')window.open('https://chatgpt.com/?q='+encodeURIComponent(p),'_blank','noopener');
+ else if(k==='gem')window.open('https://gemini.google.com/app','_blank','noopener');
+ toast(k==='gpt'?'Allega il PDF e invia':k==='gem'?'Istruzioni copiate: incollale in Gemini e allega il PDF':'Istruzioni copiate');}
+function piCheck(){const t=$('#piPaste').value,er=$('#piErr'),bad=m=>{er.innerHTML=m;er.hidden=false;};
+ if(!t.trim())return bad('Incolla prima la risposta dell\'AI.');
+ const j=PM.parsePasted(t);
+ if(!j)return bad(/\{/.test(t)?'La risposta sembra interrotta a metà. Scrivi all\'AI <b>«continua»</b> e incolla qui anche il seguito, tutto insieme; oppure chiedile <b>«Rimandami il JSON completo in un unico blocco di codice»</b>.':'Non trovo il JSON nella risposta: copia il blocco di codice che ha scritto l\'AI.');
+ if(j.format==='dieta-plan'){const e=planErrors(j);if(e.length)return bad('Questo piano ha dei problemi:<br>• '+e.map(esc).join('<br>• '));$('#pdfImp').close();addPlan(j,j.title||'Piano');return;}
+ const raw=PM.clean(j);
+ if(!raw.days.length)return bad('Nella risposta non trovo giorni con pasti e alimenti. Chiedi all\'AI di <b>«seguire esattamente la struttura indicata nelle istruzioni»</b>.');
+ PI={raw,map:PM.defaultMap(raw),title:(raw.title&&!/^piano alimentare( personalizzato)?$/i.test(raw.title)?raw.title:(raw.author?'Piano '+raw.author.replace(/^dott\.?(ssa)?\s*/i,''):'Piano alimentare'))+(raw.date?' · '+raw.date:''),author:raw.author,notes:raw.notes,file:'risposta dell\'AI'};
+ piOpen.clear();piOpen.add(0);piSave();renderPI();}
 async function pdfStart(file){
  PM=PM||await import('./pdfimport.js');
  if(file.size>PM.MAX_MB*1024*1024){alert(`Il PDF è troppo grande (massimo ${PM.MAX_MB} MB).`);return;}
@@ -836,11 +861,14 @@ $('#pdfImp').addEventListener('change',e=>{const el=e.target;if(!PI||!PI.raw)ret
  const po=el.closest('[data-po]');if(po&&el.dataset.pk==='unit'){const{c,oi}=piAt(po.dataset.po);c.options[oi].unit=el.value;piSave();renderPI();}
  if(po&&el.dataset.pk==='name'&&!el.value.trim()){toast('Il nome non può restare vuoto');}});
 $('#pdfImp').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.xai)xaiOpen(b.dataset.xai);
+ if(b.id==='piCheck')piCheck();
+ if(b.id==='piInt'){if(!SY||!SY.signedIn()){toast('Per l\'AI dell\'app accedi con Google (Impostazioni → Account)');return;}$('#pdfImp').close();$('#pdfFile').click();return;}
  if(b.id==='piStop'){if(PI)PI.stop=true;PI=null;$('#pdfImp').close();return;}
  if(!PI||!PI.raw)return;
  if(b.dataset.pidel!=null){const x=piAt(b.dataset.pidel);x.m.items.splice(x.ci,1);piPrune(x);piSave();renderPI();}
  if(b.dataset.podel!=null){const x=piAt(b.closest('[data-po]').dataset.po);x.c.options.splice(x.oi,1);if(!x.c.options.length){x.m.items.splice(x.ci,1);piPrune(x);}piSave();renderPI();}
- if(b.id==='piLater'){$('#pdfImp').close();toast('La ritrovi premendo di nuovo «Carica da PDF»');}
+ if(b.id==='piLater'){$('#pdfImp').close();toast('La ritrovi premendo di nuovo «Converti PDF»');}
  if(b.id==='piDrop'&&confirm('Scartare questo piano letto dal PDF?')){localStorage.removeItem(PI_KEY);PI=null;$('#pdfImp').close();}
  if(b.id==='piOk'){
   if(PI.raw.days.some(d=>d.meals.some(m=>m.items.some(c=>c.options.some(o=>!o.name.trim()))))){alert('C\'è un alimento senza nome: scrivilo o togli quella riga.');return;}

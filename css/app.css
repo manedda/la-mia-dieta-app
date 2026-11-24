@@ -393,6 +393,8 @@ html[data-theme=dark] #shopDays .chip.on{color:#0f1411}
 .fsh{font-size:12px;font-weight:700;color:var(--mute);padding:8px 10px 4px;border-top:1px solid var(--line);margin-top:4px}
 .lnk{background:none;border:0;padding:6px 0 0;color:var(--acc);font:inherit;font-size:14px;font-weight:600;cursor:pointer;display:block}
 .panel.flash{animation:pflash 2.2s ease}@keyframes pflash{0%,60%{box-shadow:0 0 0 3px var(--acc)}100%{box-shadow:var(--sh)}}
+#piPaste{width:100%;box-sizing:border-box;font:13px/1.4 ui-monospace,monospace;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+details.xp pre{white-space:pre-wrap;font-size:11.5px;max-height:220px;overflow:auto;background:var(--acc2);padding:10px;border-radius:10px}.xin{margin-top:14px}
 #scan .scanbox{padding:18px}#scan h3{margin:0 0 10px}
 .scview{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:4/3}
 .scview video{width:100%;height:100%;object-fit:cover;display:block}

@@ -16,6 +16,16 @@ Regole:
 - "type": la categoria più vicina tra quelle ammesse; integratori (aminoacidi, whey, creatina, vitamine) = "integratore"; caffè/tè/bevande = "bevanda"; spezie, sale, aceto = "condimento".
 - "label": nome breve della voce (es. "Pane", "Latte", "Carne fresca", "Yogurt greco").
 - "notes": le note generali (integratori, consigli, respirazione, idratazione) come testo semplice e conciso. "note" di una giornata o di una voce: solo indicazioni importanti (es. "dopo l'allenamento").`;
+/* istruzioni per ChatGPT / Gemini sul loro sito: la risposta (JSON) si incolla nell'app e passa da clean() come quella dell'AI integrata */
+export const EXT_PROMPT=SYS+`
+- Formato della risposta: SOLO il JSON, compatto (senza rientri e senza campi vuoti inutili), in un unico blocco di codice, senza spiegazioni prima o dopo. Struttura:
+{"title":"","author":"","date":"","notes":"","meals":["Colazione","Pranzo"],"days":[{"name":"Lunedì","weekdays":["lun"],"note":"","meals":[{"meal":"Colazione","items":[{"label":"Latte","type":"latte","free":false,"note":"","options":[{"name":"Latte parzialmente scremato","qty":200,"unit":"ml","kcal100":46}]}]}]}]}
+- "weekdays": tra ${WD.map(w=>w[0]).join(' ')}. "unit": una tra ${UNITS.join(' ')}. "type": una tra ${TYPES.join(' ')}.
+- Scrivi TUTTI i giorni e TUTTE le alternative, anche se il JSON viene lungo; se ti fermi per lunghezza, quando ti scrivo "continua" riprendi esattamente da dove eri rimasto.
+Ti mando il PDF del piano: se non è ancora allegato, rispondi solo "Ok, mandami il PDF" e aspettalo.`;
+/* testo incollato (anche con ``` o frasi intorno) → oggetto; null se non è un JSON completo */
+export function parsePasted(t){t=String(t||'').replace(/```(json)?/gi,'');const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a<0||b<a)return null;
+ try{return JSON.parse(t.slice(a,b+1));}catch(e){return null;}}
 const schema=S=>{
  const opt=S.object({properties:{name:S.string(),qty:S.number(),unit:S.enumString({enum:UNITS}),kcal100:S.number(),kcalUnit:S.number()},optionalProperties:['kcal100','kcalUnit']});
  const item=S.object({properties:{label:S.string(),type:S.enumString({enum:TYPES}),free:S.boolean(),note:S.string(),options:S.array({items:opt})},optionalProperties:['free','note']});
