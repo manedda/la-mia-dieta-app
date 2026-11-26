@@ -1225,7 +1225,7 @@ document.addEventListener('click',e=>{
   const m=b.closest('.bsaved');if(m)m.remove();toast('Tolto dai tuoi prodotti');}
  if(b.id==='bcSave'&&bcLast){saveBrand(bcLast);bcShow(bcLast,true);renderKTable();toast('Salvato tra i tuoi prodotti');}
  if(b.id==='bcScan')scanCode().then(c=>{if(c){$('#bcCode').value=c;bcLookup(c);}});
- if(b.dataset.oscan){const w=b.closest('details').querySelector('.dadd');scanCode().then(c=>c&&MARCA.byCode(c).then(e=>{if(!e){toast('Prodotto non trovato: scrivi nome e kcal');return;}const had=(S.brandFoods||[]).some(f=>f.code===e.code),i=$('[data-on]',w);i.value=saveBrand(e);i._pick=i.value;i.dispatchEvent(new Event('input',{bubbles:true}));
+ if(b.dataset.oscan!=null){const w=b.closest('details').querySelector('.dadd');scanCode().then(c=>c&&MARCA.byCode(c).then(e=>{if(!e){toast('Prodotto non trovato: scrivi nome e kcal');return;}const had=(S.brandFoods||[]).some(f=>f.code===e.code),i=$('[data-on]',w);i.value=saveBrand(e);i._pick=i.value;i.dispatchEvent(new Event('input',{bubbles:true}));
   const det=w.closest('details');let m=$('.bsaved',det);if(!m){m=document.createElement('p');m.className='hint bsaved';b.before(m);}
   m.innerHTML=had?`${esc(i.value)} era già tra i tuoi prodotti di marca.`:`L'ho salvato tra i tuoi prodotti di marca. <button class="lnk in" data-bundo="${esc(e.code)}">Annulla</button>`;$('[data-oq]',w).focus();},er=>toast(offMsg(er))));}
  if(b.id==='today'){S.day=todayIso();save();renderDays();renderPlan();setTab('piano');}
@@ -1315,27 +1315,34 @@ $('#bcForm').addEventListener('submit',e=>{e.preventDefault();bcLookup($('#bcCod
 /* fotocamera: restituisce il codice letto, o null se chiudi */
 function scanCode(){const d=$('#scan'),v=$('#scVid'),msg=$('#scMsg'),cam=!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
  msg.textContent=cam?'Apro la fotocamera…':'Qui la fotocamera dal vivo non va: scatta una foto alle barre, oppure chiudi e scrivi il codice a mano.';d.showModal();
- return new Promise(res=>{let stop=false,stream=null;const detP=MARCA.detector();detP.catch(()=>{});
+ return new Promise(res=>{let stop=false,stream=null,fails=0,lastErr='';const detP=MARCA.detector();detP.catch(()=>{});
   const end=code=>{if(stop)return;stop=true;if(stream)stream.getTracks().forEach(t=>t.stop());v.srcObject=null;$('#scFile').onchange=null;if(d.open)d.close();res(code);};
   const cv=document.createElement('canvas'),cx=cv.getContext('2d',{willReadFrequently:true});
-  /* immagine (fotogramma o foto) ridotta su un canvas: così il lettore funziona uguale su ogni browser */
-  const read=async(src,w,h,max)=>{const det=await detP,sc=Math.min(1,max/Math.max(w,h));cv.width=Math.round(w*sc);cv.height=Math.round(h*sc);cx.drawImage(src,0,0,cv.width,cv.height);
-   const r=await det.detect(cv),c=r.find(x=>/^\d{8,14}$/.test(x.rawValue));return c?c.rawValue:null;};
+  /* un pezzo dell'immagine (sx,sy,sw,sh) portato a "out" pixel di larghezza, passato al lettore come ImageData (va su ogni browser) */
+  const read=async(src,sx,sy,sw,sh,out)=>{const det=await detP,sc=out/sw;cv.width=Math.round(sw*sc);cv.height=Math.round(sh*sc);cx.imageSmoothingEnabled=true;cx.drawImage(src,sx,sy,sw,sh,0,0,cv.width,cv.height);
+   const r=await det.detect(cx.getImageData(0,0,cv.width,cv.height)),c=r.find(x=>/^\d{8,14}$/.test(x.rawValue));return c?c.rawValue:null;};
+  /* tentativi: fascia centrale (dove c'è la linea rossa) ingrandita, poi l'immagine intera */
+  const tries=(W,H)=>[[W*.05,H*.3,W*.9,H*.4,1280],[W*.15,H*.38,W*.7,H*.24,1280],[0,0,W,H,Math.min(1600,W)]];
   const got=c=>{if(navigator.vibrate)navigator.vibrate(60);end(c);};
   d.onclose=()=>end(null);$('#scClose').onclick=()=>end(null);
   $('#scPhoto').onclick=()=>$('#scFile').click();
   $('#scFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;msg.textContent='Leggo la foto…';
-   try{const im=await createImageBitmap(f);let c=await read(im,im.width,im.height,1600);if(!c)c=await read(im,im.width,im.height,900);
-    if(c)got(c);else msg.textContent='Non trovo il codice nella foto: riprova più vicino, dritto e a fuoco, oppure scrivi il codice a mano.';}
-   catch(er){msg.textContent='Non riesco a leggere la foto: riprova, oppure scrivi il codice a mano.';}};
+   try{const im=await createImageBitmap(f),W=im.width,H=im.height;let c=null;
+    for(const t of [[0,0,W,H,Math.min(2000,W)],[0,0,W,H,1000],[W*.05,H*.25,W*.9,H*.5,1600],[W*.1,H*.35,W*.8,H*.3,1600]]){c=await read(im,...t);if(c)break;}
+    if(c)got(c);else msg.textContent='Non trovo il codice nella foto: riprova più vicino (le barre devono riempire metà della foto), dritto e a fuoco, oppure scrivi il codice a mano.';}
+   catch(er){msg.textContent='Non riesco a leggere la foto ('+(er&&er.message||er)+'): scrivi il codice a mano.';}};
   if(!cam)return;
   (async()=>{try{
-    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280}},audio:false});
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
     if(stop){stream.getTracks().forEach(t=>t.stop());return;}
+    const tr=stream.getVideoTracks()[0];try{const cp=tr.getCapabilities?tr.getCapabilities():{};if(cp.focusMode&&cp.focusMode.includes('continuous'))await tr.applyConstraints({advanced:[{focusMode:'continuous'}]});}catch(e){}
     v.srcObject=stream;try{await v.play();}catch(e){}
-    msg.textContent='Inquadra le barre e tieni fermo il telefono, a 10-20 cm. Se non lo legge, scatta una foto.';
+    msg.textContent='Metti le barre sulla linea rossa, a 10-15 cm, e tieni fermo il telefono. Se non lo legge, scatta una foto.';
     try{await detP;}catch(e){msg.textContent='Non riesco a caricare il lettore dei codici (connessione?): scrivi il codice a mano.';return;}
-    const loop=async()=>{if(stop)return;try{if(v.readyState>=2&&v.videoWidth){const c=await read(v,v.videoWidth,v.videoHeight,1280);if(c){got(c);return;}}}catch(e){}setTimeout(loop,150);};loop();
+    let n=0;const loop=async()=>{if(stop)return;
+     try{if(v.readyState>=2&&v.videoWidth){const W=v.videoWidth,H=v.videoHeight,c=await read(v,...tries(W,H)[n++%3]);fails=0;if(c){got(c);return;}}}
+     catch(e){lastErr=e&&e.message||String(e);if(++fails===10)msg.textContent='Il lettore dà errore ('+lastErr+'): scatta una foto o scrivi il codice a mano.';}
+     setTimeout(loop,60);};loop();
    }catch(e){msg.textContent=e&&e.name==='NotAllowedError'?'Non ho il permesso di usare la fotocamera: consentilo nelle impostazioni (su iPhone: Impostazioni → Safari → Fotocamera), oppure scatta una foto o scrivi il codice a mano.':'Non riesco ad aprire la fotocamera: scatta una foto alle barre, oppure scrivi il codice a mano.';}})();
  });}
 $('#cfForm').addEventListener('submit',e=>{e.preventDefault();const n=$('#cfN').value.trim(),k=+$('#cfK').value;if(!n||!k){toast('Scrivi nome e kcal per 100 g');return;}S.customFoods=(S.customFoods||[]).filter(f=>f.n!==n);S.customFoods.push({n,k});$('#cfN').value='';$('#cfK').value='';save();renderCalorie();toast('Alimento aggiunto');});
