@@ -59,6 +59,10 @@ function mergeDoc(n,a,b){
   ['picks','pantry','checked','hidden','dplan','shopLog'].forEach(k=>{if(y[k]&&typeof y[k]==='object')x[k]={...y[k],...(x[k]||{})};});
   const uni=(k,key)=>{const a=x[k]||[],seen=new Set(a.map(key));x[k]=[...a,...(y[k]||[]).filter(e=>!seen.has(key(e)))];};
   uni('custom',e=>e.n+'|'+e.cat);uni('customFoods',e=>e.n);uni('brandFoods',e=>e.code||e.n);
+  /* misure: unisco visite e voci, tranne quelle eliminate su un dispositivo */
+  if(x.meas||y.meas){const a=x.meas||{},b=y.meas||{},gone=new Set([...(a.gone||[]),...(b.gone||[])]);
+   const u=(p,q,key)=>{const s=new Set((p||[]).map(key));return[...(p||[]),...(q||[]).filter(e=>!s.has(key(e)))];};
+   x.meas={...b,...a,gone:[...gone],fields:u(a.fields,b.fields,f=>f.k).filter(f=>!gone.has('f:'+f.k)),visits:u(a.visits,b.visits,v=>v.id).filter(v=>!gone.has(v.id))};}
   return JSON.stringify(x);}
  return a;
 }

@@ -2,6 +2,8 @@
    Dentro l'app ogni opzione resta un array [nome, quantità, unità, acquisti?] e ogni componente {t, label, opts, ...} */
 import * as CERCA from'./cerca.js';
 import * as MARCA from'./marca.js';
+import{initMisure}from'./misure.js';
+import{initReport}from'./resoconto.js';
 import{loadActivePlan,loadPrefs,isExample,planErrors,readPlans,writePlans,newPlanId,writePrefs,readLocalPrefs,clearPrefs,today,bootDone,planAt,periods,setStart,calOf}from'./store.js';
 const {st:PLANS,rec:PLAN_REC}=await loadActivePlan(), {prefs:PREFS,local:PREFS_LOCAL}=await loadPrefs();
 const PLAN=PLAN_REC.plan;
@@ -1156,12 +1158,14 @@ function renderSettings(){
 }
 function setUI(k,v){S.ui=Object.assign({},S.ui,{[k]:v});save();applyUI(S.ui);renderSettings();}
 /* ====== EVENTI ====== */
-function setTab(t){S.tab=t;save();$$('.tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));$$('main > section').forEach(s=>s.hidden=s.id!==t);if(t==='spesa')renderShop();if(t==='diario')renderDiary();if(t==='calorie')renderCalorie();if(t==='impost'){renderAccount();renderSettings();renderPlans();renderPrefCheck();renderPrefEd();renderBackup();}if(t==='piano')renderPrefWarn();window.scrollTo({top:0});}
+function setTab(t){S.tab=t;save();$$('.tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));$$('main > section').forEach(s=>s.hidden=s.id!==t);if(t==='spesa')renderShop();if(t==='diario')renderDiary();if(t==='calorie')renderCalorie();if(t==='impost'){renderAccount();renderSettings();renderPlans();renderPrefCheck();renderPrefEd();renderBackup();}if(t==='piano')renderPrefWarn();if(t==='misure')MS.render();window.scrollTo({top:0});}
 document.addEventListener('click',e=>{
  const b=e.target.closest('button,[data-tab]');if(!b)return;
  if(b.dataset.tab)setTab(b.dataset.tab);
  if(b.dataset.v&&b.closest('[data-set]'))setUI(b.closest('[data-set]').dataset.set,b.dataset.v);
  if(b.id==='setBtn')setTab('impost');
+ if(b.closest('#misure,#msDlg'))MS.onClick(b);
+ if(b.id==='rpOpen')REP.show();
  if(b.id==='themeBtn')setUI('theme',document.documentElement.dataset.theme==='dark'?'light':'dark');
  if(b.id==='uiReset'){S.ui={};save();applyUI(S.ui);renderSettings();toast('Grafica ripristinata');}
  if(b.dataset.day){S.day=b.dataset.day;save();renderDays();renderPlan();}
@@ -1346,6 +1350,10 @@ function scanCode(){const d=$('#scan'),v=$('#scVid'),msg=$('#scMsg'),cam=!!(navi
    }catch(e){msg.textContent=e&&e.name==='NotAllowedError'?'Non ho il permesso di usare la fotocamera: consentilo nelle impostazioni (su iPhone: Impostazioni → Safari → Fotocamera), oppure scatta una foto o scrivi il codice a mano.':'Non riesco ad aprire la fotocamera: scatta una foto alle barre, oppure scrivi il codice a mano.';}})();
  });}
 $('#cfForm').addEventListener('submit',e=>{e.preventDefault();const n=$('#cfN').value.trim(),k=+$('#cfK').value;if(!n||!k){toast('Scrivi nome e kcal per 100 g');return;}S.customFoods=(S.customFoods||[]).filter(f=>f.n!==n);S.customFoods.push({n,k});$('#cfN').value='';$('#cfK').value='';save();renderCalorie();toast('Alimento aggiunto');});
+/* misure e resoconto (moduli a parte) */
+const MS=initMisure({S,save,esc,$,toast,todayIso,dateOf});
+const REP=initReport({S,save,esc,$,todayIso,addDays,dateOf,MEALS,plannedOf,dayOf,periods:PERIODS,planTitle,name:(PREFS.name||'').trim(),MS});
+$('#misure').addEventListener('change',e=>MS.onChange(e.target));
 applyUI(S.ui);
 const setToday=()=>{$('#today').textContent=longDate(new Date());};
 let lastToday=todayIso();
@@ -1353,7 +1361,7 @@ let lastToday=todayIso();
 document.addEventListener('visibilitychange',()=>{if(document.hidden)return;setToday();const t=todayIso();if(t!==lastToday){if(S.day===lastToday)S.day=t;lastToday=t;rerender();}});
 setToday();renderFoodList();
 Object.keys(S.diary).forEach(iso=>{if(!S.dplanned[iso])snapDay(iso);});save();
-renderDays();renderPlan();renderPrefWarn();setTab(['piano','diario','spesa','calorie','info'].includes(S.tab)?S.tab:'piano');
+renderDays();renderPlan();renderPrefWarn();setTab(['piano','diario','spesa','calorie','misure','info'].includes(S.tab)?S.tab:'piano');
 /* accesso per test e console del browser (lo script è un modulo, quindi non crea variabili globali) */
 /* testi che dipendono dal piano e dalle preferenze */
 {const f=sessionStorage.getItem('dietaApp.flash');if(f){sessionStorage.removeItem('dietaApp.flash');setTimeout(()=>toast(f),300);}}
@@ -1366,4 +1374,4 @@ $('#credits').textContent=PLAN.credits||(PLAN.author?'Piano alimentare elaborato
 $('#xtraInfo').hidden=!XTRA.length;
 if(XTRA.length)$('#xtraInfo').innerHTML=`A colazione trovi sempre anche ${XTRA.map(x=>x.info||`<b>${esc(x.name)}</b>`).join(' e ')}: le quantità sono calcolate per avere le stesse calorie, in media, delle alternative previste quel giorno.`;
 bootDone();
-window.app={ctxAt,planIdAt,PERIODS,PLANS,PLAN_REC,checkPrefs,activatePlan,PLAN,PREFS,DAYS,MEALS,S,setTab,renderDays,renderPlan,shopText,shopItems,genRecipe,autoPicks,pkey,save,regMeal,mealState,todayIso,addDays,dayOf};
+window.app={MS,REP,ctxAt,planIdAt,PERIODS,PLANS,PLAN_REC,checkPrefs,activatePlan,PLAN,PREFS,DAYS,MEALS,S,setTab,renderDays,renderPlan,shopText,shopItems,genRecipe,autoPicks,pkey,save,regMeal,mealState,todayIso,addDays,dayOf};
