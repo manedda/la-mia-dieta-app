@@ -32,8 +32,13 @@ export function initReport(C){
    const got=new Set((S.diary[iso]||[]).filter(e=>e.m===mk&&e.pl).map(e=>e.pl));let pe=[];try{pe=planEntries(iso,mk);}catch(_){}
    const miss=pe.filter(x=>!got.has(x.pl)).map(x=>x.n);return repl[k]=pe.length&&!miss.length?['in aggiunta']:miss;};
   reg.forEach(r=>r.e.forEach(e=>{if(e.skip)return;const mn=(MEALS.find(m=>m[0]===e.m)||[,e.m||''])[1];
-   if(e.off){const o=off[e.n]=off[e.n]||{n:e.n,c:0,k:0,q:{},w:{},r:{},m:new Set()};o.c++;o.k+=+e.k||0;o.m.add(mn);if(+e.q){const u=e.u||'g';o.q[u]=(o.q[u]||0)+(+e.q);}const wd=(dateOf(r.iso).getDay()+6)%7;o.w[wd]=(o.w[wd]||0)+1;replOf(r.iso,e.m).forEach(x=>o.r[x]=(o.r[x]||0)+1);}
+   if(e.off)return;
    else{const key=mn+'|'+e.n,o=pick[key]=pick[key]||{n:e.n,m:mn,c:0};o.c++;}}));
+  /* fuori piano: gli alimenti fuori piano dello stesso pasto e giorno sono una combinazione (es. cracker + yogurt) */
+  reg.forEach(r=>MEALS.forEach(([mk,mn])=>{const L=r.e.filter(e=>e.off&&!e.skip&&e.m===mk);if(!L.length)return;
+   const ns=[...new Set(L.map(e=>e.n))].sort((a,b)=>a.localeCompare(b,'it')),key=mn+'|'+ns.join('|'),o=off[key]=off[key]||{n:ns,m:mn,c:0,k:0,q:{},w:{},r:{}};
+   o.c++;L.forEach(e=>{o.k+=+e.k||0;if(+e.q){const u=e.u||'g',t=o.q[e.n]=o.q[e.n]||{};t[u]=(t[u]||0)+(+e.q);}});
+   const wd=(dateOf(r.iso).getDay()+6)%7;o.w[wd]=(o.w[wd]||0)+1;const rp=replOf(r.iso,mk).join(' + ');if(rp)o.r[rp]=(o.r[rp]||0)+1;}));
   const picks=Object.values(pick).sort((a,b)=>b.c-a.c).slice(0,15),offs=Object.values(off).sort((a,b)=>b.k-a.k);
   /* settimane */
   const wk={};rows.forEach(r=>{const d=dateOf(r.iso),ws=addDays(r.iso,-((d.getDay()+6)%7));(wk[ws]=wk[ws]||[]).push(r);});
@@ -60,7 +65,8 @@ export function initReport(C){
     <p class="hint">Conteggi sui ${reg.length} giorni registrati. «Piano + extra»: alimenti del piano più qualcosa fuori piano.</p></section>`;
    if(picks.length)h+=`<section><h2>Alimenti del piano scelti più spesso</h2><table class="rpt"><thead><tr><th>Alimento</th><th>Pasto</th><th>Volte</th></tr></thead><tbody>${picks.map(p=>`<tr><td>${esc(p.n)}</td><td>${esc(p.m)}</td><td>${p.c}</td></tr>`).join('')}</tbody></table></section>`;
    const qt=(q,u)=>q?`${fmtN(Math.round(q*10)/10)} ${u}`:'—',WD=['lun','mar','mer','gio','ven','sab','dom'],wds=w=>Object.keys(w).sort().map(d=>WD[d]+(w[d]>1?` ×${w[d]}`:'')).join(', '),offK=offs.reduce((s,o)=>s+o.k,0),offC=offs.reduce((s,o)=>s+o.c,0);
-   h+=`<section><h2>Fuori piano</h2>${offs.length?`<table class="rpt rpoff"><thead><tr><th>Alimento</th><th>Pasto</th><th>Giorni</th><th>Volte</th><th>Quantità in tutto</th><th>kcal in tutto</th><th>Al posto di</th></tr></thead><tbody>${offs.map(o=>`<tr><td>${esc(o.n)}</td><td>${esc([...o.m].join(', '))}</td><td>${wds(o.w)}</td><td>${o.c}</td><td>${Object.keys(o.q).length?Object.entries(o.q).map(([u,q])=>qt(q,u)).join(' + '):'—'}</td><td>${R(o.k)}</td><td>${Object.entries(o.r).sort((a,b)=>b[1]-a[1]).map(([x,c])=>esc(x)+(c>1?` ×${c}`:'')).join(', ')||'—'}</td></tr>`).join('')}</tbody></table><p class="hint">In tutto ${offC} ${offC===1?'volta':'volte'} e ${R(offK)} kcal fuori piano, in media ${R(offK/reg.length)} al giorno registrato. «Giorni»: giorno della settimana, ×2 se è capitato due volte. «Al posto di»: gli alimenti del piano di quel pasto che non sono stati mangiati; «in aggiunta» se il pasto del piano è stato mangiato tutto.</p>`:'<p>Nessun alimento fuori piano.</p>'}</section>`;
+   const qOf=o=>{const one=n=>Object.entries(o.q[n]||{}).map(([u,q])=>qt(q,u)).join(' + ');return o.n.length===1?(one(o.n[0])||'—'):o.n.map(n=>`${esc(n)} ${one(n)||'—'}`).join(' + ');};
+   h+=`<section><h2>Fuori piano</h2>${offs.length?`<table class="rpt rpoff"><thead><tr><th>Alimenti</th><th>Pasto</th><th>Giorni</th><th>Volte</th><th>Quantità in tutto</th><th>kcal in tutto</th><th>Al posto di</th></tr></thead><tbody>${offs.map(o=>`<tr><td>${o.n.map(esc).join(' + ')}</td><td>${esc(o.m)}</td><td>${wds(o.w)}</td><td>${o.c}</td><td>${qOf(o)}</td><td>${R(o.k)}</td><td>${Object.entries(o.r).sort((a,b)=>b[1]-a[1]).map(([x,c])=>esc(x)+(c>1?` ×${c}`:'')).join('; ')||'—'}</td></tr>`).join('')}</tbody></table><p class="hint">In tutto ${offC} ${offC===1?'volta':'volte'} e ${R(offK)} kcal fuori piano, in media ${R(offK/reg.length)} al giorno registrato. Gli alimenti fuori piano mangiati nello stesso pasto sono uniti con «+». «Giorni»: giorno della settimana, ×2 se è capitato due volte. «Al posto di»: gli alimenti del piano di quel pasto che non sono stati mangiati; «in aggiunta» se il pasto del piano è stato mangiato tutto.</p>`:'<p>Nessun alimento fuori piano.</p>'}</section>`;
   }
   const vs=MS.visits().filter(v=>v.d<=to);
   if(vs.length)h+=`<section><h2>Misure</h2>${MS.table(vs.slice(-4),{edit:false})}${vs.length>4?'<p class="hint">Ultime 4 visite.</p>':''}</section>`;
