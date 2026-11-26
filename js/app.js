@@ -1352,7 +1352,7 @@ function scanCode(){const d=$('#scan'),v=$('#scVid'),msg=$('#scMsg'),cam=!!(navi
 $('#cfForm').addEventListener('submit',e=>{e.preventDefault();const n=$('#cfN').value.trim(),k=+$('#cfK').value;if(!n||!k){toast('Scrivi nome e kcal per 100 g');return;}S.customFoods=(S.customFoods||[]).filter(f=>f.n!==n);S.customFoods.push({n,k});$('#cfN').value='';$('#cfK').value='';save();renderCalorie();toast('Alimento aggiunto');});
 /* misure e resoconto (moduli a parte) */
 const MS=initMisure({S,save,esc,$,toast,todayIso,dateOf});
-const REP=initReport({S,save,esc,$,todayIso,addDays,dateOf,MEALS,plannedOf,dayOf,periods:PERIODS,planTitle,name:(PREFS.name||'').trim(),MS});
+const REP=initReport({S,save,esc,$,todayIso,addDays,dateOf,MEALS,plannedOf,dayOf,planEntries,periods:PERIODS,planTitle,name:(PREFS.name||'').trim(),MS});
 $('#misure').addEventListener('change',e=>MS.onChange(e.target));
 /* link con le misure (…/#misure=tabella): le importo dopo una conferma; la tabella resta nel telefono, non va al server */
 const hashMeas=()=>{if(!location.hash.startsWith('#misure='))return;const t=location.hash;history.replaceState(null,'',location.pathname+location.search);
