@@ -1354,6 +1354,9 @@ $('#cfForm').addEventListener('submit',e=>{e.preventDefault();const n=$('#cfN').
 const MS=initMisure({S,save,esc,$,toast,todayIso,dateOf});
 const REP=initReport({S,save,esc,$,todayIso,addDays,dateOf,MEALS,plannedOf,dayOf,periods:PERIODS,planTitle,name:(PREFS.name||'').trim(),MS});
 $('#misure').addEventListener('change',e=>MS.onChange(e.target));
+/* link con le misure (…/#misure=tabella): le importo dopo una conferma; la tabella resta nel telefono, non va al server */
+const hashMeas=()=>{if(!location.hash.startsWith('#misure='))return;const t=location.hash;history.replaceState(null,'',location.pathname+location.search);
+ setTimeout(()=>{if(!confirm('Questo link contiene le misure delle visite. Le importo?'))return;const r=MS.importTable(t);if(r.err){toast(r.err);return;}setTab('misure');toast(`${r.n} visite importate${r.m?`, ${r.m} aggiornate`:''}`);},600);};hashMeas();addEventListener('hashchange',hashMeas);
 applyUI(S.ui);
 const setToday=()=>{$('#today').textContent=longDate(new Date());};
 let lastToday=todayIso();

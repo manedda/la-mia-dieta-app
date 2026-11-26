@@ -94,7 +94,7 @@
   <div class="wksum msum" id="msSum"></div>
   <div class="card"><h4>📏 Confronto tra le visite</h4><div id="msTab"></div></div>
   <div class="card"><h4>⚖️ Peso</h4><div id="msW"></div></div>
-  <div class="card"><details><summary><b>📋 Importa da una tabella</b></summary><p class="hint">Copia la tabella delle misure (da Excel, Numbers, Google Fogli o dal PDF della visita) e incollala qui: una riga per misura e una colonna per data, con le date nella prima riga (es. 21/02/2026). Le visite con la stessa data vengono aggiornate.</p><textarea id="msPaste" rows="6" placeholder="Voce	10/01/2026	14/03/2026&#10;Peso	70,2	68,9&#10;Circ fianchi	96	94,5"></textarea><div class="tools"><button class="btn sm" id="msImp">Importa</button></div><p class="hint" id="msImpMsg"></p></details></div>
+  <div class="card"><details><summary><b>📋 Importa da una tabella</b></summary><p class="hint">Copia la tabella delle misure (da Excel, Numbers, Google Fogli o dal PDF della visita) e incollala qui: una riga per misura e una colonna per data, con le date nella prima riga (es. 21/02/2026). Le visite con la stessa data vengono aggiornate. Puoi incollare anche un link che contiene le misure.</p><textarea id="msPaste" rows="6" placeholder="Voce	10/01/2026	14/03/2026&#10;Peso	70,2	68,9&#10;Circ fianchi	96	94,5"></textarea><div class="tools"><button class="btn sm" id="msImp">Importa</button></div><p class="hint" id="msImpMsg"></p></details></div>
   <div class="card"><details><summary><b>🧩 Voci misurate</b></summary><p class="hint">Puoi rinominarle, toglierle o aggiungerne altre: valgono per tutte le visite.</p><div id="msFields"></div>
    <form class="add" onsubmit="return false"><input id="msFN" placeholder="Nuova misura (es. Polpaccio)" autocomplete="off"><input id="msFU" placeholder="unità" style="flex:none;width:70px" autocomplete="off"><select id="msFG" aria-label="Gruppo"><option value="c">Circonferenze</option><option value="p">Pliche</option><option value="b">Peso e altezza</option><option value="x">Altre</option></select><button class="btn" id="msFAdd" type="button">+</button></form></details></div>
  </section>
@@ -181,7 +181,7 @@
  <div class="ract"><button class="btn" id="rAgain">🔄 Un'altra idea</button><button class="btn ghost" id="rAI">✨ Chiedi all'AI</button><button class="btn ghost" id="rCopy">Copia</button><button class="btn line" id="rClose">Chiudi</button></div>
 </dialog>
 <div class="toast" id="toast"></div>
-<script type="module" src="js/app.js?v=37"></script>
+<script type="module" src="js/app.js?v=38"></script>
 <script>if('serviceWorker' in navigator&&location.protocol.startsWith('http')){navigator.serviceWorker.register('sw.js').catch(()=>{});
  /* versione nuova appena installata: ricarico una volta, così non resta un misto di file vecchi e nuovi */
  if(navigator.serviceWorker.controller)navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!sessionStorage.getItem('dietaApp.swr')){sessionStorage.setItem('dietaApp.swr','1');location.reload();}});

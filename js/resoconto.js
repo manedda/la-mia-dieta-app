@@ -64,13 +64,49 @@ export function initReport(C){
   h+=`<footer class="hint">Creato con La mia dieta il ${fl(todayIso())}. Calorie indicative (banca dati IEO e Open Food Facts).</footer>`;
   return h;}
  function show(from,to){const [a,b]=from?[from,to]:defRange(),el=$('#report');
-  el.innerHTML=`<div class="rptool noprint"><label>Dal <input type="date" id="rpFrom" value="${a}" max="${todayIso()}"></label><label>al <input type="date" id="rpTo" value="${b}" max="${todayIso()}"></label><span style="flex:1"></span><button class="btn sm" id="rpPrint">🖨️ Stampa o salva PDF</button><button class="btn line sm" id="rpClose">Chiudi</button></div><article class="rpbody">${build(a,b)}</article>`;
+  el.innerHTML=`<div class="rptool noprint"><label>Dal <input type="date" id="rpFrom" value="${a}" max="${todayIso()}"></label><label>al <input type="date" id="rpTo" value="${b}" max="${todayIso()}"></label><span style="flex:1"></span><button class="btn sm" id="rpPdf">📄 Crea il PDF</button><button class="btn line sm" id="rpPrint">🖨️ Stampa</button><button class="btn line sm" id="rpClose">Chiudi</button></div><article class="rpbody">${build(a,b)}</article>`;
   el.hidden=false;document.documentElement.classList.add('rpopen');el.scrollTop=0;
   const sync=()=>{$('#rpNoteP').textContent=$('#rpNote').value;};sync();
   $('#rpNote').oninput=()=>{S.repNote=$('#rpNote').value;sync();save();};
   const re=()=>{const f=$('#rpFrom').value,t=$('#rpTo').value;if(f&&t&&f<=t)show(f,t);};$('#rpFrom').onchange=re;$('#rpTo').onchange=re;
   $('#rpPrint').onclick=()=>{const o=document.title;document.title=`Resoconto ${name?name+' ':''}${a} ${b}`;window.print();setTimeout(()=>document.title=o,1000);};
+  $('#rpPdf').onclick=()=>makePdf(a,b);
   $('#rpClose').onclick=close;}
+ /* PDF creato nel telefono (window.print non funziona nell'app installata su iPhone): immagine della pagina divisa in fogli A4 */
+ const loadJs=src=>new Promise((ok,ko)=>{if(document.querySelector(`script[data-v="${src}"]`))return ok();const s=document.createElement('script');s.src=src;s.dataset.v=src;s.onload=ok;s.onerror=()=>ko(new Error('Non riesco a caricare '+src));document.head.appendChild(s);});
+ let pdfFile=null;
+ async function sharePdf(){const f=pdfFile;if(!f)return;
+  if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:f.name});return;}catch(e){if(e.name==='AbortError')return;}}
+  const u=URL.createObjectURL(f),l=document.createElement('a');l.href=u;l.download=f.name;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);}
+ async function makePdf(a,b){const btn=$('#rpPdf');
+  if(pdfFile&&btn.dataset.ready===a+b){sharePdf();return;}
+  btn.disabled=true;btn.textContent='⏳ Preparo il PDF…';let box;
+  try{await loadJs('js/vendor/html2canvas-pro.min.js');await loadJs('js/vendor/jspdf.umd.min.js');
+   const W=760,PH=Math.floor(W*277/190);
+   box=document.createElement('div');box.className='rpbody rpdf';box.innerHTML=$('#report .rpbody').innerHTML;
+   const n=box.querySelector('#rpNote');if(n){n.remove();}box.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));
+   document.body.appendChild(box);
+   /* i grafici SVG perdono il foglio di stile: copio i colori negli attributi */
+   box.querySelectorAll('svg *').forEach(e=>{const c=getComputedStyle(e);['fill','stroke','stroke-width','stroke-dasharray','opacity','font-size','font-family','font-weight'].forEach(p=>{const v=c.getPropertyValue(p);if(v)e.setAttribute(p,v);});});
+   box.querySelectorAll('svg').forEach(s=>{const r=s.getBoundingClientRect();s.setAttribute('width',r.width);s.setAttribute('height',r.height);});
+   /* tagli tra un blocco e l'altro, mai a metà di una riga */
+   const top0=box.getBoundingClientRect().top,H=box.scrollHeight;
+   const cand=[...new Set([...box.querySelectorAll('h2,tr,svg,p,.rpsum,.rph,footer,.mtw,.rpnp')].map(e=>Math.round(e.getBoundingClientRect().top-top0-4)))].sort((x,y)=>x-y);
+   const cuts=[0];while(H-cuts[cuts.length-1]>PH){const s=cuts[cuts.length-1],lim=s+PH,c=cand.filter(x=>x>s+PH*.35&&x<=lim).pop();cuts.push(c||lim);}cuts.push(H);
+   const cv=await html2canvas(box,{scale:2,backgroundColor:'#ffffff',windowWidth:W,width:W,height:H});
+   const {jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'}),k=cv.width/W;
+   for(let i=0;i<cuts.length-1;i++){const h=cuts[i+1]-cuts[i],pc=document.createElement('canvas');pc.width=cv.width;pc.height=Math.ceil(h*k);
+    const g=pc.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,pc.width,pc.height);g.drawImage(cv,0,Math.floor(cuts[i]*k),cv.width,pc.height,0,0,cv.width,pc.height);
+    if(i)doc.addPage();doc.addImage(pc.toDataURL('image/jpeg',.9),'JPEG',10,10,190,h*190/W);
+    doc.setFontSize(8);doc.setTextColor(140);doc.text(`${i+1}/${cuts.length-1}`,200,290,{align:'right'});}
+   const nm=`Resoconto ${name?name+' ':''}${a} ${b}.pdf`.replace(/[\/:*?"<>|]/g,'');
+   pdfFile=new File([doc.output('blob')],nm,{type:'application/pdf'});
+   box.remove();box=null;
+   btn.dataset.ready=a+b;btn.textContent='📤 Apri o condividi il PDF';btn.disabled=false;
+   await sharePdf();
+  }catch(e){console.warn(e);btn.disabled=false;btn.textContent='📄 Crea il PDF';alert('Non riesco a creare il PDF ('+(e&&e.message||e)+'). Riprova con la connessione attiva.');}
+  finally{if(box)box.remove();}}
+ window.__rpPdf=()=>pdfFile;
  function close(){const el=$('#report');el.hidden=true;el.innerHTML='';document.documentElement.classList.remove('rpopen');}
  return{show,close,build,defRange};
 }

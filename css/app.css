@@ -469,3 +469,7 @@ html.rpopen body{overflow:hidden}
  #rpNote{display:none}.rpnp{display:block;min-height:60px;border:1px solid #ccc;border-radius:8px;padding:8px}
  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+/* copia del resoconto per il PDF (fuori dallo schermo, colori chiari) */
+.rpdf{position:absolute;left:-10000px;top:0;width:760px;max-width:none;padding:0;margin:0;background:#fff;color:#111;font-size:14px;--card:#fff;--bg:#fff;--ink:#111;--mute:#555;--line:#ddd;--acc:#2f6f4f;--acc2:#e8f2ec}
+.rpdf .mtw{overflow:visible}.rpdf .mtab tbody th{position:static;max-width:none}.rpdf .rpnp{display:block;min-height:60px;border:1px solid #ccc;border-radius:8px;padding:8px}.rpdf .spark{display:none}
+.rpdf th,.rpdf td{padding:6px 7px}

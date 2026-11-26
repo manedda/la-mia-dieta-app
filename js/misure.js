@@ -115,7 +115,8 @@ export function initMisure(C){
    vals.forEach((x,j)=>{const y=num(x);if(y!=null&&out[j])out[j].v[f.k]=y;});});
   const ok=out.filter(o=>Object.keys(o.v).length);
   return ok.length?{visits:ok,fields:F,unk}:{err:'Non trovo valori numerici sotto le date.'};}
- function importTable(txt){const r=parseTable(txt);if(r.err)return r;
+ function importTable(txt){const lk=/#misure=([^\s]+)/.exec(txt);if(lk)try{txt=decodeURIComponent(lk[1]);}catch(e){}
+  const r=parseTable(txt);if(r.err)return r;
   const w=W();w.fields=r.fields;let n=0,m=0;
   r.visits.forEach(o=>{const ex=w.visits.find(x=>!x.home&&x.d===o.d);if(ex){ex.v={...ex.v,...o.v};m++;}else{w.visits.push({id:newId(),d:o.d,v:o.v});n++;}});
   save();render();return{n,m,unk:r.unk};}
@@ -130,5 +131,5 @@ export function initMisure(C){
    toast(`${r.n} visite importate${r.m?`, ${r.m} aggiornate`:''}`);if(r.unk.length)$('#msImpMsg').textContent='Misure nuove aggiunte: '+r.unk.join(', ')+'. Se una era già in elenco, rinominala o toglila qui sotto.';}
  }
  function onChange(el){if(el.dataset.mfn!=null){const w=W(),f=w.fields[+el.dataset.mfn],n=el.value.trim();if(f&&n){f.n=n;save();render();}}}
- return{render,table,wchart,visits,weights,bmi,psum,onClick,onChange,parseTable,fields};
+ return{importTable,render,table,wchart,visits,weights,bmi,psum,onClick,onChange,parseTable,fields};
 }
