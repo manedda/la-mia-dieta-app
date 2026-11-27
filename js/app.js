@@ -219,13 +219,14 @@ function renderPlan(){
  $('#meals').innerHTML=MEALS.map(([mk,mn,ic])=>{
   const comps=d.meals[mk]||[];
   if(!comps.length)return'';
-  const free=comps[0].free;let mK=[0,0];const nAlt=comps.filter(c=>!c.free&&c.opts.length>1).length,nIt=comps.filter(c=>!c.free).length;
+  const free=comps[0].free;let mK=[0,0],sK=0;const nAlt=comps.filter(c=>!c.free&&c.opts.length>1).length,nIt=comps.filter(c=>!c.free).length;
   const rows=comps.map((c,i)=>{
    if(c.free)return freeRow(iso,mk,fut);
    /* oggi e giorni passati: la spunta = l'hai mangiato (voce nel diario); giorni futuri: la spunta = scelto per la spesa */
    const key=pkey(iso,mk,i), sel=S.picks[key], ate=fut?null:log.find(e=>e.pl===`${mk}|${i}`&&!e.skip), sug=isSel(sel)?-1:(AP[key]??-1);
    let sh=ate?(ate.j!=null?+ate.j:pickOf(key,c,AP)):(isSel(sel)?+sel:sug);if(sh>=0&&!c.opts[sh])sh=sug>=0&&c.opts[sug]?sug:0; /* voce del diario segnata con un altro piano */
    const ck=compK(c,ate?sh:sel);mK[0]+=ck[0];mK[1]+=ck[1];
+   if(fut){const jj=c.opts.length===1?0:sh;if(jj>=0&&c.opts[jj])sK+=optK(c.opts[jj])||0;}else if(ate)sK+=+ate.k||0;
    const tip=on=>fut?'':` title="${on?'Mangiato: tocca per toglierlo dal diario':'Tocca se l\'hai mangiato'}"`;
    const inner=(o,tag)=>{const k=optK(o);return`<span class="on1">${esc(o[0])}${tag||''}</span><span class="od">${esc(optDetail(c,o))}${k!=null?` · ${Math.round(k)}`:''}</span>`;};
    if(c.opts.length===1){const o=c.opts[0],nt=c.note?`<small>${esc(c.note)}</small>`:'';
@@ -234,7 +235,10 @@ function renderPlan(){
    const main=sh>=0&&c.opts[sh]?`<button class="opt main ${on?'on':''}${sh===sug&&!on?' sug':''}" ${fut&&sh===sug?'title="Suggerito: è quello che trovi nella lista della spesa. Toccalo per confermarlo."':tip(on)} data-pick="${key}" data-j="${sh}" aria-pressed="${on}"><i class="ck">${on?CKS:''}</i>${inner(c.opts[sh],c.list?` <em class="tag">${esc(c.list)}</em>`:'')}</button>`:'';
    return`<div class="row" title="${esc(c.label)}">${main}<div class="alts">${c.opts.map((o,j)=>{if(j===sh)return'';const k=optK(o);return`<button class="pill" data-pick="${key}" data-j="${j}" aria-pressed="false" title="${fut?'':'L\'ho mangiato al posto di quello sopra · '}${esc(optDetail(c,o))}${k!=null?` · ${Math.round(k)} kcal`:''}">${esc(o[0])}${k!=null?`<small>${Math.round(k)}</small>`:''}</button>`;}).join('')}</div></div>`;
   }).join('');
-  return`<article class="meal ${free?'is-free':''}"><header><div><h3><span>${esc(ic||'')}</span>${esc(mn)}</h3>${free?'':`<small class="mk">${rFmt(mK)} · ${nAlt?'scegli 1 per voce':nIt===1?'1 alimento':nIt+' alimenti'}</small>`}</div>${free?'':`<button class="btn ghost sm" data-recipe="${mk}">✨ Ricetta</button>`}</header>${rows}${mealLog(iso,mk,free,log,fut)}</article>`;
+  /* totale del pasto con quello che hai scelto o spuntato, più gli alimenti segnati a mano (fuori piano) */
+  const xE=log.filter(e=>e.m===mk&&!e.pl&&!e.skip),xK=xE.reduce((a,e)=>a+(+e.k||0),0),oK=xE.filter(e=>e.off).reduce((a,e)=>a+(+e.k||0),0),skp=log.some(e=>e.m===mk&&e.skip);
+  const tot=!free&&!skp&&(sK||xK)?`<small class="mtot">${fut?'Con le tue scelte':'Mangiato'}: <b>${Math.round(sK+xK)} kcal</b>${oK?` (${Math.round(oK)} fuori piano)`:''}</small>`:'';
+  return`<article class="meal ${free?'is-free':''}"><header><div><h3><span>${esc(ic||'')}</span>${esc(mn)}</h3>${free?'':`<small class="mk">${rFmt(mK)} · ${nAlt?'scegli 1 per voce':nIt===1?'1 alimento':nIt+' alimenti'}</small>`}${tot}</div>${free?'':`<button class="btn ghost sm" data-recipe="${mk}">✨ Ricetta</button>`}</header>${rows}${mealLog(iso,mk,free,log,fut)}</article>`;
  }).join('');
 }
 
